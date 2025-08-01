@@ -1,4 +1,4 @@
-.PHONY: bootstrap test format clean
+.PHONY: bootstrap test format format-fix clean
 
 VENV := .venv
 
@@ -21,7 +21,10 @@ format:
 	@echo "== format check =="
 	@. $(VENV)/bin/activate && poetry run black --check .
 
+format-fix:
+	@echo "== format fix =="
+	@. $(VENV)/bin/activate && poetry run black .
+
 clean:
 	@echo "== clean =="
 	@rm -rf $(VENV)
-
