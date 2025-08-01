@@ -7,46 +7,25 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  test:
+  verify:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Show Python version (fallback)
+      - name: Show Python version (avoid pyenv shim confusion)
         run: |
           pyenv shell system || true
           python3 --version
 
-      - name: Setup fallback virtualenv
+      - name: Bootstrap environment via Makefile
         run: |
-          python3 -m venv .venv --without-pip
-          source .venv/bin/activate
-          curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
-          python /tmp/get-pip.py --force-reinstall
-          python -m pip install --upgrade pip setuptools wheel
+          make bootstrap
 
-      - name: Install Poetry via pipx
+      - name: Format check
         run: |
-          source .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install --user pipx
-          export PATH="$HOME/.local/bin:$PATH"
-          pipx ensurepath
-          pipx install poetry
-          poetry --version
-
-      - name: Install dependencies
-        run: |
-          source .venv/bin/activate
-          poetry install --no-root
-
-      - name: Run formatting check
-        run: |
-          source .venv/bin/activate
-          poetry run black --check .
+          make format
 
       - name: Run tests
         run: |
-          source .venv/bin/activate
-          poetry run pytest -q
+          make test
