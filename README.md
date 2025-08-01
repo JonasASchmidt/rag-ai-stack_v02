@@ -1,6 +1,6 @@
 # rag-ai-stack_v02
 
-Lokaler RAG-Stack zum Chatten mit eigenen Dokumenten.
+Lokaler RAG-Stack zum Chatten mit eigenen Dokumenten vibe-gecodet zusammen mit OPenAI's Codex und ChatGPT 04-mini und 04-mini-high.
 
 ## Voraussetzungen
 
