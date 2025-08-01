@@ -16,9 +16,9 @@ repos:
         args: ["--profile", "black"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.9
+    rev: v0.5.7
+
     hooks:
       - id: ruff
         args: ["--fix"]  # optional: automatisch beheben, wenn möglich
-        additional_dependencies: []
         language_version: python3
