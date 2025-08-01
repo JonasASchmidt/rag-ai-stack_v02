@@ -1,13 +1,6 @@
-.PHONY: help bootstrap test format clean
+.PHONY: bootstrap test format clean
 
 VENV := .venv
-
-help:
-	@echo "Targets:"
-	@echo "  make bootstrap  # setup venv, pip, poetry and install deps"
-	@echo "  make test       # run tests"
-	@echo "  make format     # check formatting"
-	@echo "  make clean      # remove venv"
 
 bootstrap:
 	@echo "== bootstrap =="
@@ -22,7 +15,7 @@ bootstrap:
 
 test:
 	@echo "== test =="
-	@. $(VENV)/bin/activate && poetry run pytest -q || true
+	@. $(VENV)/bin/activate && poetry run pytest -q
 
 format:
 	@echo "== format check =="
