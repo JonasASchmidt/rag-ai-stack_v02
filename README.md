@@ -11,6 +11,13 @@ Ziel dieses Repositories: ein **stabiler, reproduzierbarer Python-Setup** trotz 
 * **Einfacher Entwickler-Workflow** über `Makefile`: `bootstrap`, `format`, `test`.
 * **CI garantiert Konsistenz**: GitHub Actions validiert den gleichen Flow automatisch.
 
+## Abhängigkeiten
+
+* [LlamaIndex](https://github.com/run-llama/llama_index) für den RAG-Index.
+* [Chainlit](https://github.com/Chainlit/chainlit) als leichtes Chat-UI.
+* [watchdog](https://github.com/gorakhargosh/watchdog) zur Dateisystemüberwachung.
+* [python-dotenv](https://github.com/theskumar/python-dotenv) zum Laden von `.env`-Variablen.
+
 ## Voraussetzungen (Host)
 
 * macOS oder vergleichbares Unix
