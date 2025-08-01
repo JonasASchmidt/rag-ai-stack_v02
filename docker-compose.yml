@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  indexer:
+    build: ./indexer
+    env_file: .env
+    volumes:
+      - docs-data:/app/../docs        # maps to DOCS_DIR inside ingest watcher
+      - vectorstore-data:/app/../vectorstore
+    restart: unless-stopped
+
+  backend:
+    working_dir: /workspace
+    image: python:3.13-slim
+    command: bash -lc "pip install --no-cache-dir -r backend/requirements.txt && chainlit run backend/app.py"
+    ports:
+      - "8000:8000"
+    env_file: .env
+    volumes:
+      - ./:/workspace
+      - vectorstore-data:/vectorstore
+    depends_on:
+      - indexer
+    restart: unless-stopped
+
+volumes:
+  docs-data:
+  vectorstore-data:

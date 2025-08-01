@@ -1,0 +1,41 @@
+=== SHELL INFO ===
+Shell PID: 11454
+Shell executable:
+  PID TTY           TIME CMD
+11454 ttys000    0:00.01 bash ./diag-env.sh
+
+=== ALIASES & TYPES ===
+
+type python:
+python is /Users/jonasarneschmidt/.pyenv/shims/python
+type python3:
+python3 is /opt/homebrew/bin/python3
+type pip:
+pip is /Users/jonasarneschmidt/.pyenv/shims/pip
+
+=== PATH & WHICH ===
+PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/Users/jonasarneschmidt/.pyenv/shims:/Users/jonasarneschmidt/.pyenv/bin:/Users/jonasarneschmidt/.rd/bin:/Users/jonasarneschmidt/.local/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Applications/Little Snitch.app/Contents/Components
+/Users/jonasarneschmidt/.pyenv/shims/python
+/opt/homebrew/bin/python3
+/Users/jonasarneschmidt/.pyenv/shims/python3
+/usr/bin/python3
+/Users/jonasarneschmidt/.pyenv/shims/pip
+
+=== pyenv ===
+  system
+* 3.13.5 (set by /Users/jonasarneschmidt/Documents/Projects/rag-ai-stack_v02/.python-version)
+/Users/jonasarneschmidt/.pyenv/versions/3.13.5/bin/python
+/Users/jonasarneschmidt/.pyenv/versions/3.13.5/bin/python3
+
+=== Python env vars ===
+PYENV_ROOT=/Users/jonasarneschmidt/.pyenv
+PYENV_SHELL=zsh
+
+=== Current Python info ===
+Python 3.13.5
+/Users/jonasarneschmidt/.pyenv/versions/3.13.5/bin/python
+['', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python313.zip', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python3.13', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python3.13/lib-dynload', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python3.13/site-packages']
+
+=== venv dir snapshot (if exists) ===
+drwxr-xr-x@  6 jonasarneschmidt  staff  192  1 Aug 00:51 .venv
+drwxr-xr-x@ 12 jonasarneschmidt  staff  384  1 Aug 00:51 .venv/bin
