@@ -13,10 +13,9 @@ import os
 from typing import Any, List
 
 try:  # pragma: no cover - optional dependency
-    from llama_index import (PromptHelper, ServiceContext,  # type: ignore
-                             SimpleDirectoryReader, VectorStoreIndex)
-    from llama_index.evaluation import \
-        EmbeddingSimilarityEvaluator  # type: ignore
+    from llama_index import ServiceContext  # type: ignore
+    from llama_index import PromptHelper, SimpleDirectoryReader, VectorStoreIndex
+    from llama_index.evaluation import EmbeddingSimilarityEvaluator  # type: ignore
     from llama_index.readers.file import ImageReader, PDFReader  # type: ignore
 except Exception:  # pragma: no cover - handled gracefully if missing
     PromptHelper = ServiceContext = SimpleDirectoryReader = VectorStoreIndex = None  # type: ignore
