@@ -1,103 +1,48 @@
-# rag-ai-stack\_v02
+# rag-ai-stack_v02
 
-Modularer, lokaler RAG-AI-Stack zum Chatten mit eigenen Dokumenten.
-Ziel dieses Repositories: ein **stabiler, reproduzierbarer Python-Setup** trotz pyenv/venv/Shim-Fallstricken.
+Lokaler RAG-Stack zum Chatten mit eigenen Dokumenten.
 
-## Kernideen
+## Voraussetzungen
 
-* **Fallback-Python**: Nutze ein unabhängiges, sauberes `python3` (z. B. vom python.org Installer) — keine Shim-Verwirrung.
-* **Robustes venv**: Erstelle das virtuelle Environment ohne `ensurepip`-Edge-Cases, bootstrappe `pip` manuell.
-* **Dependency-Management**: Nutze `poetry` (installiert im venv) für saubere, deklarative Abhängigkeiten.
-* **Einfacher Entwickler-Workflow** über `Makefile`: `bootstrap`, `format`, `test`.
-* **CI garantiert Konsistenz**: GitHub Actions validiert den gleichen Flow automatisch.
+* Python 3.13
+* Git und `make`
+* Ein Unix-artiges Betriebssystem (macOS, Linux, WSL)
 
-## Abhängigkeiten
-
-* [LlamaIndex](https://github.com/run-llama/llama_index) für den RAG-Index.
-* [Chainlit](https://github.com/Chainlit/chainlit) als leichtes Chat-UI.
-* [watchdog](https://github.com/gorakhargosh/watchdog) zur Dateisystemüberwachung.
-* [python-dotenv](https://github.com/theskumar/python-dotenv) zum Laden von `.env`-Variablen.
-
-## Voraussetzungen (Host)
-
-* macOS oder vergleichbares Unix
-* Python 3.13.x (idealerweise installiert über python.org, nicht abhängig von kaputten pyenv-Shims)
-* Git
-* Homebrew (für einfache Installation von Tools, optional)
-
-## Setup / Entwicklung (lokal)
+## Setup
 
 ```bash
-# 1. Bootstrap (erstellt venv, installiert pip, poetry & deps)
+# virtuelle Umgebung und Abhängigkeiten
 make bootstrap
 
-# 2. Formatierung prüfen
+# optional: Formatierung prüfen
 make format
 
-# 3. Tests ausführen
+# Tests ausführen
 make test
 ```
 
-## Was passiert unter der Haube in `make bootstrap`
+## Eigenen Dokumenten-Index bauen
 
-* echtes `python3` wird verwendet (pyenv-Shims werden temporär umgangen)
-* neues `.venv` ohne `ensurepip` erzeugt
-* `pip` via `get-pip.py` gebootstrapped
-* `pip`, `setuptools`, `wheel`, `poetry` installiert
-* Projektabhängigkeiten via `poetry install --no-root` installiert
-
-## Snapshot / Reproducibility
+Lege deine Texte in ein Verzeichnis wie `docs/` und generiere den JSON-Index,
+den der Chat verwendet:
 
 ```bash
-pip freeze > requirements.txt
-```
-
-Damit hast du einen flachen Snapshot der aktuell installierten Pakete als Fallback.
-
-## Optional: pyenv-Flow (nur wenn du versionierte Pythons brauchst)
-
-```bash
-pyenv install 3.13.5
-pyenv local 3.13.5
-pyenv rehash
-
-rm -rf .venv
-~/.pyenv/versions/3.13.5/bin/python -m venv --copies .venv
 source .venv/bin/activate
-python -m ensurepip --upgrade || true
-python -m pip install --upgrade pip setuptools wheel poetry
-poetry install --no-root
+DOCS_DIR=docs INDEX_DIR=backend poetry run python indexer/ingest.py
 ```
 
-> Hinweis: Wenn `ensurepip` mit pyenv wieder bricht, bleib beim stabilen fallback-Flow mit dem system/python.org-Python.
+Der Index landet als `backend/index.json`.
 
-## Git / Commit
-
-Empfohlener erster Commit:
+## Chat lokal starten
 
 ```bash
-git add pyproject.toml poetry.lock README.md .gitignore setup-fallback.sh Makefile requirements.txt .github/workflows/ci.yml
-git commit -m "Initial stable Python.org fallback setup with Makefile and CI"
-git push origin main
+source .venv/bin/activate
+poetry run chainlit run backend/app.py
 ```
 
-## CI
+Nach dem Start ist die Oberfläche unter <http://localhost:8000> erreichbar.
 
-Die GitHub Actions in `.github/workflows/ci.yml` führt bei jedem Push / PR:
+## Nützliche Makefile-Ziele
 
-1. `make bootstrap`
-2. `make format` (macht Build rot bei Formatfehlern)
-3. `make test` (macht Build rot bei fehlgeschlagenen Tests)
-
-## Erweiterungen (nächste sinnvolle Schritte)
-
-* Echte Tests schreiben im `tests/`-Verzeichnis
-* Pre-commit-Hooks integrieren (`black`, `isort`, etc.)
-* Release-/Version-Tagging
-* Devcontainer oder Shell-Wrapper für Konsistenz auf anderen Maschinen
-
-## Troubleshooting
-
-* **`make bootstrap` bricht:** prüfe `python3`-Pfad (`pyenv shell system`), lösche `.venv` manuell und wiederhole.
-* **`poetry` fehlt:** wird im venv installiert; falls du sie global brauchst, installiere sie über `pipx` außerhalb des venv.
-* **Tests fehlen:** Lege eine Datei `tests/test_smoke.py` mit `assert True` an, damit `make test` initial grün läuft.
+* `make format-fix` – formatiert den Code
+* `make clean` – entfernt die virtuelle Umgebung
