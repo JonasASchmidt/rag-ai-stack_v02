@@ -7,7 +7,7 @@ repos:
         language_version: python3
 
   - repo: https://github.com/PyCQA/isort
-    rev: 6.11.0
+    rev: 5.13.2
     hooks:
       - id: isort
         name: isort (python import sorting)
@@ -15,8 +15,8 @@ repos:
         # synchronisiert mit black style
         args: ["--profile", "black"]
 
-  - repo: https://github.com/charliermarsh/ruff
-    rev: v0.0.297
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.9
     hooks:
       - id: ruff
         args: ["--fix"]  # optional: automatisch beheben, wenn möglich
