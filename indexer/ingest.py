@@ -4,6 +4,25 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from pypdf import PdfReader
+
+SUPPORTED_TEXT_EXTS = {".txt", ".md", ".json", ".rst"}
+
+
+def _read_file(path: Path) -> str | None:
+    """Return textual content for *path* or ``None`` if unsupported."""
+    suffix = path.suffix.lower()
+    try:
+        if suffix in SUPPORTED_TEXT_EXTS:
+            return path.read_text(encoding="utf-8")
+        if suffix == ".pdf":
+            reader = PdfReader(str(path))
+            return "\n".join(page.extract_text() or "" for page in reader.pages)
+    except Exception as exc:  # pragma: no cover - unexpected read errors
+        logging.error("Failed to read %s: %s", path, exc)
+        return None
+    logging.info("Skipping unsupported file type: %s", path)
+    return None
 
 
 def build_index(docs_dir: Path, index_dir: Path) -> None:
@@ -20,15 +39,14 @@ def build_index(docs_dir: Path, index_dir: Path) -> None:
 
     updated_paths = set()
     for path in docs_dir.glob("**/*"):
-        if path.is_file():
-            try:
-                content = path.read_text(encoding="utf-8")
-            except Exception as exc:  # pragma: no cover - unexpected read errors
-                logging.error("Failed to read %s: %s", path, exc)
-                continue
-            rel_path = str(path.relative_to(docs_dir))
-            index[rel_path] = content
-            updated_paths.add(rel_path)
+        if not path.is_file():
+            continue
+        content = _read_file(path)
+        if content is None:
+            continue
+        rel_path = str(path.relative_to(docs_dir))
+        index[rel_path] = content
+        updated_paths.add(rel_path)
 
     # Remove entries for files that no longer exist
     index = {k: v for k, v in index.items() if k in updated_paths}
