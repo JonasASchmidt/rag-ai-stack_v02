@@ -1,0 +1,12 @@
+## Zutaten für 4 Personen
+- 500 g Hähnchenbrustfilet
+- 60 g frischer Galgant (oder 2 TL Ingwerpulver)
+- 2 Knoblauchzehen
+- 4 EL Öl
+- 1/4–1/2 TL Sambal Oelek
+- 5 EL helle Sojasauce
+- schwarzer Pfeffer, frisch gemahlen
+- 300 g Zuckerschoten
+- 150 ml Hühnerbrühe
+- 1/2 TL Speisestärke
+- Salz
