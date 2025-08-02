@@ -1,8 +1,12 @@
 import json
 from datetime import datetime
 from pathlib import Path
+import urllib.parse
+import urllib.request
 
 import chainlit as cl
+from chainlit import ChatSettings
+from chainlit.input_widget import Switch
 
 INDEX_PATH = Path(__file__).parent / "index.json"
 FEEDBACK_PATH = Path(__file__).parent / "feedback.log"
@@ -32,13 +36,41 @@ async def on_chat_start() -> None:
     """Load the retrieval index when the chat session starts."""
     global index
     index = load_index()
+    await ChatSettings(
+        inputs=[Switch(id="internet_access", label="Internet access", initial=False)]
+    ).send()
+    cl.user_session.set("internet_access", False)
     await cl.Message(content="Index geladen. Stelle deine Frage!").send()
+
+
+@cl.on_settings_update
+async def on_settings_update(settings: dict) -> None:
+    """Store updated chat settings in the user session."""
+    cl.user_session.set("internet_access", settings.get("internet_access", False))
+
+
+def internet_search(query: str) -> str:
+    """Retrieve an answer from the internet using DuckDuckGo's instant API."""
+    url = (
+        "https://api.duckduckgo.com/?q="
+        + urllib.parse.quote(query)
+        + "&format=json&no_html=1&skip_disambig=1"
+    )
+    try:
+        with urllib.request.urlopen(url, timeout=5) as response:
+            data = json.load(response)
+        return data.get("AbstractText") or "Keine Online-Antwort gefunden."
+    except Exception:
+        return "Fehler beim Abrufen der Online-Informationen."
 
 
 @cl.on_message
 async def on_message(message: cl.Message) -> None:
     """Handle incoming user messages."""
-    answer = retrieve(message.content, index)
+    if cl.user_session.get("internet_access", False):
+        answer = internet_search(message.content)
+    else:
+        answer = retrieve(message.content, index)
     sent = cl.Message(content=answer)
     await sent.send()
 
