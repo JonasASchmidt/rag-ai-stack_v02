@@ -13,10 +13,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Show Python version (avoid pyenv shim confusion)
-        run: |
-          pyenv shell system || true
-          python3 --version
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Show Python version
+        run: python3 --version
 
       - name: Bootstrap environment
         run: |
@@ -24,7 +27,6 @@ jobs:
             make bootstrap
           else
             echo "Makefile missing; falling back to explicit bootstrap"
-            pyenv shell system || true
             python3 -m venv .venv --without-pip
             source .venv/bin/activate
             curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
