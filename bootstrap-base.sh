@@ -6,7 +6,7 @@ source ~/.zprofile
 source ~/.zshrc
 
 echo "== Optional: Homebrew-Python entfernen =="
-brew uninstall --ignore-dependencies python@3.13 || true
+brew uninstall --ignore-dependencies python@3.12 || true
 brew cleanup || true
 
 echo "== Prüfe python.org-Python =="
@@ -15,7 +15,7 @@ python3 --version
 
 echo "== Richte pyenv ein (optional) =="
 if command -v pyenv >/dev/null 2>&1; then
-  pyenv install -s 3.13.5
+  pyenv install -s 3.12.10
   pyenv rehash
   echo "pyenv versions:"
   pyenv versions

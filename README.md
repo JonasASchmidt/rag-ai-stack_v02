@@ -4,7 +4,7 @@ Lokaler RAG-Stack zum Chatten mit eigenen Dokumenten vibe-gecodet zusammen mit O
 
 ## Voraussetzungen
 
-* Python 3.13
+* Python 3.12
 * Git und `make`
 * Ein Unix-artiges Betriebssystem (macOS, Linux, WSL)
 

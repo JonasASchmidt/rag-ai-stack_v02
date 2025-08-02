@@ -1,41 +1,48 @@
 === SHELL INFO ===
-Shell PID: 11454
+Shell PID: 7348
 Shell executable:
-  PID TTY           TIME CMD
-11454 ttys000    0:00.01 bash ./diag-env.sh
+    PID TTY          TIME CMD
+   7348 ?        00:00:00 bash
 
 === ALIASES & TYPES ===
 
 type python:
-python is /Users/jonasarneschmidt/.pyenv/shims/python
+python is /root/.pyenv/shims/python
 type python3:
-python3 is /opt/homebrew/bin/python3
+python3 is /root/.pyenv/shims/python3
 type pip:
-pip is /Users/jonasarneschmidt/.pyenv/shims/pip
+pip is /root/.pyenv/shims/pip
 
 === PATH & WHICH ===
-PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/Users/jonasarneschmidt/.pyenv/shims:/Users/jonasarneschmidt/.pyenv/bin:/Users/jonasarneschmidt/.rd/bin:/Users/jonasarneschmidt/.local/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Applications/Little Snitch.app/Contents/Components
-/Users/jonasarneschmidt/.pyenv/shims/python
-/opt/homebrew/bin/python3
-/Users/jonasarneschmidt/.pyenv/shims/python3
+PATH=/root/.nvm/versions/node/v20.19.4/bin:/root/.pyenv/shims:6241PYENV_ROOT/shims:/root/.pyenv/bin:/root/.local/share/mise/installs/bun/1.2.14/bin:/root/.local/share/mise/installs/erlang/27.1.2/bin:/root/.local/share/mise/installs/go/1.24.3/bin:/root/.local/share/mise/installs/golangci-lint/2.1.6/golangci-lint-2.1.6-linux-amd64:/root/.local/share/mise/installs/gradle/8.14.3/gradle-8.14.3/bin:/root/.local/share/mise/installs/java/21.0.2/bin:/root/.local/share/mise/installs/maven/3.9.10/apache-maven-3.9.10/bin:/root/.local/share/mise/installs/php/8.4.11/bin:/root/.local/share/mise/installs/php/8.4.11/sbin:/root/.local/share/mise/installs/php/8.4.11/.composer/vendor/bin:/root/.local/share/mise/installs/ruby/3.4.4/bin:/root/.cargo/bin:/root/.local/share/mise/installs/swift/6.1/bin:/root/.local/share/mise/installs/elixir/1.18.3-otp-27/bin:/root/.local/share/mise/installs/elixir/1.18.3-otp-27/.mix/escripts:/root/.local/share/mise/installs/node/22.17.1/bin:/usr/local/go/bin:/root/go/bin:/root/.local/bin:/root/.pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+/root/.pyenv/shims/python
+/root/.pyenv/shims/python3
 /usr/bin/python3
-/Users/jonasarneschmidt/.pyenv/shims/pip
+/bin/python3
+/root/.pyenv/shims/pip
+/usr/bin/pip
+/bin/pip
 
 === pyenv ===
   system
-* 3.13.5 (set by /Users/jonasarneschmidt/Documents/Projects/rag-ai-stack_v02/.python-version)
-/Users/jonasarneschmidt/.pyenv/versions/3.13.5/bin/python
-/Users/jonasarneschmidt/.pyenv/versions/3.13.5/bin/python3
+  3.10.17
+  3.11.12
+* 3.12.10 (set by /workspace/rag-ai-stack_v02/.python-version)
+  3.13.3
+/root/.pyenv/versions/3.12.10/bin/python
+/root/.pyenv/versions/3.12.10/bin/python3
 
 === Python env vars ===
-PYENV_ROOT=/Users/jonasarneschmidt/.pyenv
-PYENV_SHELL=zsh
+PYENV_SHELL=bash
+PYTHON_VERSIONS=3.10 3.11.12 3.12 3.13
+PYENV_ROOT=/root/.pyenv
+PATH=/root/.nvm/versions/node/v20.19.4/bin:/root/.pyenv/shims:6241PYENV_ROOT/shims:/root/.pyenv/bin:/root/.local/share/mise/installs/bun/1.2.14/bin:/root/.local/share/mise/installs/erlang/27.1.2/bin:/root/.local/share/mise/installs/go/1.24.3/bin:/root/.local/share/mise/installs/golangci-lint/2.1.6/golangci-lint-2.1.6-linux-amd64:/root/.local/share/mise/installs/gradle/8.14.3/gradle-8.14.3/bin:/root/.local/share/mise/installs/java/21.0.2/bin:/root/.local/share/mise/installs/maven/3.9.10/apache-maven-3.9.10/bin:/root/.local/share/mise/installs/php/8.4.11/bin:/root/.local/share/mise/installs/php/8.4.11/sbin:/root/.local/share/mise/installs/php/8.4.11/.composer/vendor/bin:/root/.local/share/mise/installs/ruby/3.4.4/bin:/root/.cargo/bin:/root/.local/share/mise/installs/swift/6.1/bin:/root/.local/share/mise/installs/elixir/1.18.3-otp-27/bin:/root/.local/share/mise/installs/elixir/1.18.3-otp-27/.mix/escripts:/root/.local/share/mise/installs/node/22.17.1/bin:/usr/local/go/bin:/root/go/bin:/root/.local/bin:/root/.pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+CODEX_ENV_PYTHON_VERSION=3.12
 
 === Current Python info ===
-Python 3.13.5
-/Users/jonasarneschmidt/.pyenv/versions/3.13.5/bin/python
-['', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python313.zip', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python3.13', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python3.13/lib-dynload', '/Users/jonasarneschmidt/.pyenv/versions/3.13.5/lib/python3.13/site-packages']
+Python 3.12.10
+/root/.pyenv/versions/3.12.10/bin/python
+['', '/root/.pyenv/versions/3.12.10/lib/python312.zip', '/root/.pyenv/versions/3.12.10/lib/python3.12', '/root/.pyenv/versions/3.12.10/lib/python3.12/lib-dynload', '/root/.pyenv/versions/3.12.10/lib/python3.12/site-packages']
 
 === venv dir snapshot (if exists) ===
-drwxr-xr-x@  6 jonasarneschmidt  staff  192  1 Aug 00:51 .venv
-drwxr-xr-x@ 12 jonasarneschmidt  staff  384  1 Aug 00:51 .venv/bin
+No .venv directory
