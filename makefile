@@ -10,8 +10,8 @@ bootstrap:
 	@. $(VENV)/bin/activate && \
 		curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py && \
 		python /tmp/get-pip.py --force-reinstall && \
-		python -m pip install --upgrade pip setuptools wheel poetry && \
-		poetry install --no-root
+                python -m pip install --upgrade pip setuptools wheel poetry && \
+                PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 poetry install --no-root
 
 test:
 	@echo "== test =="
