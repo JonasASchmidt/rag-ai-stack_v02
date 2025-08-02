@@ -1,8 +1,8 @@
 import json
-from datetime import datetime
-from pathlib import Path
 import urllib.parse
 import urllib.request
+from datetime import datetime
+from pathlib import Path
 
 import chainlit as cl
 from chainlit import ChatSettings
@@ -96,7 +96,18 @@ async def on_message(message: cl.Message) -> None:
 
     if value == "down":
         detail = await cl.AskUserMessage(content="Bitte beschreibe das Problem.").send()
+
+        # ``AskUserMessage`` can also return either an object with a
+        # ``content`` attribute or a plain ``dict``.  Extract the text in a
+        # flexible way so feedback logging works across Chainlit versions.
+        detail_content = ""
+        if detail:
+            if isinstance(detail, dict):
+                detail_content = detail.get("content", "")
+            else:
+                detail_content = getattr(detail, "content", "")
+
         with FEEDBACK_PATH.open("a", encoding="utf-8") as f:
             f.write(
-                f"{datetime.utcnow().isoformat()}\t{message.content}\t{detail.content}\n"
+                f"{datetime.utcnow().isoformat()}\t{message.content}\t{detail_content}\n"
             )
