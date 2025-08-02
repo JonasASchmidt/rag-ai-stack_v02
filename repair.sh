@@ -25,8 +25,8 @@ if cmd_exists pyenv && [[ "$(which python3)" == *".pyenv/shims/"* ]]; then
     if [ -f .python-version ]; then
       PYVER=$(<.python-version)
     else
-      echo "No .python-version; defaulting to 3.13.5"
-      PYVER="3.13.5"
+      echo "No .python-version; defaulting to 3.12.10"
+      PYVER="3.12.10"
       pyenv local "$PYVER"
     fi
     if ! pyenv versions --bare | grep -qx "$PYVER"; then

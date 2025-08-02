@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(pwd)"
-PYTHON_VERSION="3.13.5"
+PYTHON_VERSION="3.12.10"
 ZSHRC="$HOME/.zshrc"
 
 echo "==> Bootstrapping project in ${PROJECT_DIR}"
