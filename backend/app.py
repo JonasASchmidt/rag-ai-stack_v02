@@ -83,7 +83,18 @@ async def on_message(message: cl.Message) -> None:
         actions=actions,
     ).send()
 
-    if result and result.value == "down":
+    # ``AskActionMessage`` may return different structures depending on the
+    # Chainlit version (e.g. an object with a ``value`` attribute or a plain
+    # ``dict``).  Access the selected value in a version‑agnostic way to avoid
+    # ``AttributeError`` when the result is a dictionary.
+    value = None
+    if result:
+        if isinstance(result, dict):
+            value = result.get("value")
+        else:
+            value = getattr(result, "value", None)
+
+    if value == "down":
         detail = await cl.AskUserMessage(content="Bitte beschreibe das Problem.").send()
         with FEEDBACK_PATH.open("a", encoding="utf-8") as f:
             f.write(
