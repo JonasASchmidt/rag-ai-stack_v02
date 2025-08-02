@@ -35,6 +35,9 @@ htmlcov/
 .cache/
 *.cache
 
+# Chainlit
+.chainlit/
+
 # Poetry backup lock
 poetry.lock.bak
 
