@@ -34,6 +34,26 @@ Put your documents into the volume mounted at ``docs/`` (or whatever
 the vector store whenever files change.  The Chainlit UI is available at
 <http://localhost:8000>.
 
+### Running without Docker
+
+The components can also be executed directly for local development:
+
+```bash
+# install indexer and backend dependencies
+pip install -r indexer/requirements.txt -r backend/requirements.txt
+
+# copy and adjust the configuration
+cp .env.example .env
+
+# build the index once
+python -m indexer.ingest
+# alternatively keep it up to date
+# python -m indexer.watcher
+
+# start the chat UI
+chainlit run backend/app.py
+```
+
 ## Configuration
 
 All runtime parameters are controlled via environment variables.  The most
