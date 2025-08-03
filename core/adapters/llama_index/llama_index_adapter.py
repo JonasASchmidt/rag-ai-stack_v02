@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, List, Sequence
+from typing import Any, Sequence
 
 from core.interfaces.evaluator import Evaluator
 from core.interfaces.indexer import Indexer
@@ -28,9 +28,7 @@ try:  # pragma: no cover - optional dependency
         VectorStoreIndex,
         load_index_from_storage,
     )
-    from llama_index.indices.query.response_synthesizer import (
-        get_response_synthesizer,
-    )
+    from llama_index.indices.query.response_synthesizer import get_response_synthesizer
     from llama_index.llms.ollama import Ollama
     from llama_index.readers.file import ImageReader, PDFReader
 except Exception:  # pragma: no cover - handled gracefully if missing
@@ -42,8 +40,8 @@ except Exception:  # pragma: no cover - handled gracefully if missing
 def _service_context_from_env() -> ServiceContext:
     """Create a :class:`ServiceContext` configured from environment variables."""
 
-    if PromptHelper is None or ServiceContext is None or Ollama is None:
-        raise ImportError("llama_index with Ollama support is required")
+    if PromptHelper is None or ServiceContext is None:
+        raise ImportError("llama_index is required")
 
     env = os.environ
     chunk_size = int(env.get("CHUNK_SIZE", 800))
@@ -58,11 +56,13 @@ def _service_context_from_env() -> ServiceContext:
         chunk_size_limit=chunk_size,
     )
 
-    llm = Ollama(
-        model=env.get("LLM_MODEL", "llama3.1:latest"),
-        base_url=env.get("OLLAMA_API_URL", "http://localhost:11434"),
-        temperature=float(env.get("TEMPERATURE", 0.1)),
-    )
+    llm = None
+    if Ollama is not None:  # pragma: no branch - optional
+        llm = Ollama(
+            model=env.get("LLM_MODEL", "llama3.1:latest"),
+            base_url=env.get("OLLAMA_API_URL", "http://localhost:11434"),
+            temperature=float(env.get("TEMPERATURE", 0.1)),
+        )
 
     return ServiceContext.from_defaults(llm=llm, prompt_helper=prompt_helper)
 
@@ -76,22 +76,24 @@ class LlamaIndexIndexer(Indexer):
     def build(
         self, docs_dir: Path, persist_dir: Path
     ) -> Any:  # pragma: no cover - heavy IO
-        if (
-            SimpleDirectoryReader is None
-            or VectorStoreIndex is None
-            or ImageReader is None
-            or PDFReader is None
-        ):
-            raise ImportError("llama_index readers are required")
+        if SimpleDirectoryReader is None or VectorStoreIndex is None:
+            raise ImportError("llama_index is required")
 
-        file_extractor = {
-            ".pdf": PDFReader(ocr=True),
-            ".png": ImageReader(ocr=True),
-            ".jpg": ImageReader(ocr=True),
-            ".jpeg": ImageReader(ocr=True),
-        }
+        file_extractor = {}
+        if PDFReader is not None:
+            file_extractor[".pdf"] = PDFReader(ocr=True)
+        if ImageReader is not None:
+            file_extractor.update(
+                {
+                    ".png": ImageReader(ocr=True),
+                    ".jpg": ImageReader(ocr=True),
+                    ".jpeg": ImageReader(ocr=True),
+                }
+            )
 
-        reader = SimpleDirectoryReader(str(docs_dir), file_extractor=file_extractor)
+        reader = SimpleDirectoryReader(
+            str(docs_dir), file_extractor=file_extractor or None
+        )
         documents = reader.load_data()
         index = VectorStoreIndex.from_documents(
             documents, service_context=self.service_context

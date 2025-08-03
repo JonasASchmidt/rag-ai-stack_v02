@@ -6,8 +6,8 @@ WORKDIR /app
 COPY indexer/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the indexer code and the core library
+# Copy the indexer package and the core library
 COPY core /app/core
-COPY indexer /app
+COPY indexer /app/indexer
 
-CMD ["python", "watcher.py"]
+CMD ["python", "-m", "indexer.watcher"]
