@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
 import chainlit as cl
 from dotenv import load_dotenv
 
-from core.adapters.llama_index.llama_index_adapter import (
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from core.adapters.llama_index.llama_index_adapter import (  # noqa: E402
     LlamaIndexIndexer,
     LlamaIndexResponseGenerator,
     LlamaIndexRetriever,
@@ -23,27 +28,44 @@ retriever: LlamaIndexRetriever | None = None
 generator: LlamaIndexResponseGenerator | None = None
 
 
-def _load_index() -> None:
-    """Load the persisted index and initialise helper objects."""
+def _load_index() -> bool:
+    """Load the persisted index and initialise helper objects.
+
+    Returns ``True`` if the index was loaded successfully, otherwise ``False``.
+    """
 
     global index, retriever, generator
 
     index_dir = Path(os.environ.get("INDEX_DIR", "vectorstore/llama"))
-    index = LlamaIndexIndexer.load(index_dir)
+    if not index_dir.exists():
+        return False
+
+    try:
+        index = LlamaIndexIndexer.load(index_dir)
+    except Exception:
+        return False
+
     retriever = LlamaIndexRetriever(index)
     generator = LlamaIndexResponseGenerator(index)
+    return True
 
 
 @cl.on_chat_start
 async def on_chat_start() -> None:
     load_dotenv()
-    _load_index()
-    await cl.Message(content="Index geladen. Stelle deine Frage!").send()
+    if _load_index():
+        await cl.Message(content="Index geladen. Stelle deine Frage!").send()
+    else:
+        await cl.Message(
+            content="Kein Index gefunden. Bitte führe zuerst den Indexer aus."
+        ).send()
 
 
 @cl.on_message
 async def on_message(message: cl.Message) -> None:
-    assert retriever and generator  # for type checkers
+    if not retriever or not generator:
+        await cl.Message(content="Kein Index geladen.").send()
+        return
 
     nodes = retriever.retrieve(message.content)
     answer = generator.generate(message.content, nodes)
