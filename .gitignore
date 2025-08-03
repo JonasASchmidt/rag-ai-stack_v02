@@ -38,6 +38,9 @@ htmlcov/
 # Chainlit
 .chainlit/
 
+# Vector store data
+vectorstore/
+
 # Poetry backup lock
 poetry.lock.bak
 

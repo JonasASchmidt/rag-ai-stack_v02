@@ -1,48 +1,59 @@
-# rag-ai-stack_v02
+# RAG AI Stack v0.2
 
-Lokaler RAG-Stack zum Chatten mit eigenen Dokumenten vibe-gecodet zusammen mit OPenAI's Codex und ChatGPT 04-mini und 04-mini-high.
+This repository provides a small but complete retrieval augmented
+generation (RAG) stack.  Documents placed in ``DOCS_DIR`` are ingested into
+an on‑disk vector store.  A Chainlit based backend exposes a chat interface
+which retrieves relevant nodes from the store and lets the LLM generate an
+answer.
 
-## Voraussetzungen
-
-* Python 3.12
-* Git und `make`
-* Ein Unix-artiges Betriebssystem (macOS, Linux, WSL)
-
-## Setup
+## Quick start
 
 ```bash
-# virtuelle Umgebung und Abhängigkeiten
-make bootstrap
+# copy and adjust the configuration
+cp .env.example .env
 
-# optional: Formatierung prüfen
-make format
-
-# Tests ausführen
-make test
+# start the indexer and the chat backend
+docker compose up --build
 ```
 
-## Eigenen Dokumenten-Index bauen
+Put your documents into the volume mounted at ``docs/`` (or whatever
+``DOCS_DIR`` points to).  The indexer watches this directory and rebuilds
+the vector store whenever files change.  The Chainlit UI is available at
+<http://localhost:8000>.
 
-Lege deine Texte in ein Verzeichnis wie `docs/` und generiere den JSON-Index,
-den der Chat verwendet:
+## Configuration
+
+All runtime parameters are controlled via environment variables.  The most
+important ones are shown below (see ``.env.example`` for the full list):
+
+| Variable | Description |
+|----------|-------------|
+| ``DOCS_DIR`` | Directory containing the source documents |
+| ``INDEX_DIR`` | Where the persistent vector store is written |
+| ``LLM_MODEL`` / ``OLLAMA_API_URL`` | Model and endpoint used by the LlamaIndex ``Ollama`` LLM |
+| ``CHUNK_SIZE`` / ``CHUNK_OVERLAP`` | Document chunking parameters |
+| ``RETRIEVAL_K`` / ``FETCH_K`` | Retrieval depth controls |
+| ``RESPONSE_MODE`` / ``THINKING_STEPS`` / ``TEMPERATURE`` | Response generation knobs |
+
+Tweak these values to trade off speed, precision and creativity.
+
+## Evaluating the pipeline
+
+The ``evaluator`` package contains a small script that can be used to
+compare answers from the running backend with expected results:
 
 ```bash
-source .venv/bin/activate
-DOCS_DIR=docs INDEX_DIR=backend poetry run python indexer/ingest.py
+python evaluator/eval.py --tests evaluator/tests.json
 ```
 
-Der Index landet als `backend/index.json`.
+The script writes ``results.json`` with similarity scores based on
+``difflib.SequenceMatcher``.
 
-## Chat lokal starten
+## Development
 
-```bash
-source .venv/bin/activate
-poetry run chainlit run backend/app.py
-```
+The project deliberately keeps dependencies minimal and uses a clean
+architecture.  All interaction with ``llama_index`` happens inside
+``core.adapters.llama_index``.  The rest of the code relies solely on the
+abstract interfaces found in ``core.interfaces`` making it easy to swap out
+implementations in the future.
 
-Nach dem Start ist die Oberfläche unter <http://localhost:8000> erreichbar.
-
-## Nützliche Makefile-Ziele
-
-* `make format-fix` – formatiert den Code
-* `make clean` – entfernt die virtuelle Umgebung

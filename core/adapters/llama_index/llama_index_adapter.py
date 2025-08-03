@@ -1,79 +1,86 @@
-"""LlamaIndex adapter classes.
+"""Concrete adapter implementations using `llama_index`.
 
-This module provides concrete classes to index documents, retrieve nodes,
-produce responses, and evaluate results using the LlamaIndex library.
-
-Configuration is pulled from environment variables to allow flexible
-runtime tuning without code changes.
+The adapter layer bridges the abstract interfaces defined in
+``core.interfaces`` with the concrete capabilities provided by the
+`llama_index` library.  Only a very small subset of ``llama_index`` is used
+and all configuration is sourced from environment variables so behaviour
+can be tuned without code changes.
 """
 
 from __future__ import annotations
 
 import os
-from typing import Any, List
+from difflib import SequenceMatcher
+from pathlib import Path
+from typing import Any, List, Sequence
+
+from core.interfaces.evaluator import Evaluator
+from core.interfaces.indexer import Indexer
+from core.interfaces.response_generator import ResponseGenerator
+from core.interfaces.retriever import Retriever
 
 try:  # pragma: no cover - optional dependency
-    from llama_index import ServiceContext  # type: ignore
-    from llama_index import PromptHelper, SimpleDirectoryReader, VectorStoreIndex
-    from llama_index.evaluation import EmbeddingSimilarityEvaluator  # type: ignore
-    from llama_index.readers.file import ImageReader, PDFReader  # type: ignore
+    from llama_index import (
+        PromptHelper,
+        ServiceContext,
+        SimpleDirectoryReader,
+        StorageContext,
+        VectorStoreIndex,
+        load_index_from_storage,
+    )
+    from llama_index.indices.query.response_synthesizer import (
+        get_response_synthesizer,
+    )
+    from llama_index.llms.ollama import Ollama
+    from llama_index.readers.file import ImageReader, PDFReader
 except Exception:  # pragma: no cover - handled gracefully if missing
-    PromptHelper = ServiceContext = SimpleDirectoryReader = VectorStoreIndex = None  # type: ignore
-    EmbeddingSimilarityEvaluator = ImageReader = PDFReader = None  # type: ignore
+    PromptHelper = ServiceContext = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
+    VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
+    Ollama = ImageReader = PDFReader = None  # type: ignore[assignment]
 
 
-def _prompt_helper_from_env() -> Any:
-    """Create a ``PromptHelper`` configured from environment variables.
+def _service_context_from_env() -> ServiceContext:
+    """Create a :class:`ServiceContext` configured from environment variables."""
 
-    The following variables are recognised:
+    if PromptHelper is None or ServiceContext is None or Ollama is None:
+        raise ImportError("llama_index with Ollama support is required")
 
-    ``LLAMA_PROMPT_MAX_INPUT_SIZE``
-        Maximum number of tokens that may be passed to the model.
-    ``LLAMA_PROMPT_NUM_OUTPUT``
-        Maximum number of tokens the model may generate.
-    ``LLAMA_PROMPT_MAX_CHUNK_OVERLAP``
-        Overlap between chunks when splitting documents.
-    ``LLAMA_PROMPT_CHUNK_SIZE_LIMIT``
-        Upper bound for chunk size when splitting documents.
-    """
+    env = os.environ
+    chunk_size = int(env.get("CHUNK_SIZE", 800))
+    chunk_overlap = float(env.get("CHUNK_OVERLAP", 0.1))
+    max_input_size = int(env.get("MAX_INPUT_SIZE", 4096))
+    num_output = int(env.get("NUM_OUTPUT", 512))
 
-    max_input_size = int(os.environ.get("LLAMA_PROMPT_MAX_INPUT_SIZE", 4096))
-    num_output = int(os.environ.get("LLAMA_PROMPT_NUM_OUTPUT", 256))
-    max_chunk_overlap = int(os.environ.get("LLAMA_PROMPT_MAX_CHUNK_OVERLAP", 20))
-    chunk_size_limit = int(os.environ.get("LLAMA_PROMPT_CHUNK_SIZE_LIMIT", 600))
-
-    if PromptHelper is None:
-        raise ImportError("llama_index is required for PromptHelper")
-
-    return PromptHelper(
+    prompt_helper = PromptHelper(
         max_input_size=max_input_size,
         num_output=num_output,
-        max_chunk_overlap=max_chunk_overlap,
-        chunk_size_limit=chunk_size_limit,
+        chunk_overlap_ratio=chunk_overlap,
+        chunk_size_limit=chunk_size,
     )
 
+    llm = Ollama(
+        model=env.get("LLM_MODEL", "llama3.1:latest"),
+        base_url=env.get("OLLAMA_API_URL", "http://localhost:11434"),
+        temperature=float(env.get("TEMPERATURE", 0.1)),
+    )
 
-class LlamaIndexIndexer:
-    """Index documents using LlamaIndex.
+    return ServiceContext.from_defaults(llm=llm, prompt_helper=prompt_helper)
 
-    Parameters are sourced from environment variables via ``PromptHelper``.
-    OCR is enabled for PDFs and common image formats.
-    """
+
+class LlamaIndexIndexer(Indexer):
+    """Build and persist a :class:`VectorStoreIndex` from documents."""
 
     def __init__(self) -> None:
-        prompt_helper = _prompt_helper_from_env()
-        if ServiceContext is None:
-            raise ImportError("llama_index is required for ServiceContext")
+        self.service_context = _service_context_from_env()
 
-        self.service_context = ServiceContext.from_defaults(prompt_helper=prompt_helper)
-
-    def index(self, path: str) -> Any:
-        """Create a ``VectorStoreIndex`` for files located at ``path``."""
-
-        if SimpleDirectoryReader is None or VectorStoreIndex is None:
-            raise ImportError("llama_index is required for indexing")
-        if ImageReader is None or PDFReader is None:
-            raise ImportError("llama_index file readers are required")
+    def build(self, docs_dir: Path, persist_dir: Path) -> Any:  # pragma: no cover - heavy IO
+        if (
+            SimpleDirectoryReader is None
+            or VectorStoreIndex is None
+            or ImageReader is None
+            or PDFReader is None
+        ):
+            raise ImportError("llama_index readers are required")
 
         file_extractor = {
             ".pdf": PDFReader(ocr=True),
@@ -81,53 +88,73 @@ class LlamaIndexIndexer:
             ".jpg": ImageReader(ocr=True),
             ".jpeg": ImageReader(ocr=True),
         }
-        reader = SimpleDirectoryReader(path, file_extractor=file_extractor)
+
+        reader = SimpleDirectoryReader(str(docs_dir), file_extractor=file_extractor)
         documents = reader.load_data()
-        return VectorStoreIndex.from_documents(
+        index = VectorStoreIndex.from_documents(
             documents, service_context=self.service_context
         )
 
+        index.storage_context.persist(persist_dir=str(persist_dir))
+        return index
 
-class LlamaIndexRetriever:
-    """Retrieve relevant nodes from a ``VectorStoreIndex``."""
+    @staticmethod
+    def load(persist_dir: Path) -> Any:
+        """Load a previously persisted index from ``persist_dir``."""
+
+        if StorageContext is None or load_index_from_storage is None:
+            raise ImportError("llama_index storage components are required")
+
+        storage = StorageContext.from_defaults(persist_dir=str(persist_dir))
+        return load_index_from_storage(storage)
+
+
+class LlamaIndexRetriever(Retriever):
+    """Retrieve relevant nodes from a :class:`VectorStoreIndex`."""
 
     def __init__(self, index: Any) -> None:
         self.index = index
         env = os.environ
-        self.k = int(env.get("LLAMA_RETRIEVER_K", 4))
-        self.fetch_k = int(env.get("LLAMA_RETRIEVER_FETCH_K", 20))
+        self.k = int(env.get("RETRIEVAL_K", 5))
+        self.fetch_k = int(env.get("FETCH_K", 20))
 
-    def retrieve(self, query: str) -> List[Any]:
-        """Retrieve nodes matching ``query``."""
-
+    def retrieve(self, query: str, top_k: int | None = None) -> Sequence[Any]:
+        if top_k is None:
+            top_k = self.k
         retriever = self.index.as_retriever(
-            similarity_top_k=self.k, vector_store_kwargs={"fetch_k": self.fetch_k}
+            similarity_top_k=top_k, vector_store_kwargs={"fetch_k": self.fetch_k}
         )
         return retriever.retrieve(query)
 
 
-class LlamaIndexResponseGenerator:
-    """Generate responses for queries using a ``VectorStoreIndex``."""
+class LlamaIndexResponseGenerator(ResponseGenerator):
+    """Generate answers from retrieved nodes using ``llama_index``."""
 
     def __init__(self, index: Any) -> None:
-        self.query_engine = index.as_query_engine()
+        env = os.environ
+        self.thinking_steps = int(env.get("THINKING_STEPS", 1))
+        self.response_mode = env.get("RESPONSE_MODE", "compact")
+        temperature = float(env.get("TEMPERATURE", 0.1))
 
-    def generate(self, query: str) -> str:
-        """Generate a textual answer for ``query``."""
+        service_context = index.service_context
+        llm = service_context.llm
+        if hasattr(llm, "temperature"):
+            llm.temperature = temperature
 
-        response = self.query_engine.query(query)
+        self.synthesizer = get_response_synthesizer(
+            service_context=service_context, response_mode=self.response_mode
+        )
+
+    def generate(self, query: str, documents: Sequence[Any]) -> str:
+        if self.thinking_steps > 1:
+            query = f"Think in {self.thinking_steps} steps and answer.\n{query}"
+        response = self.synthesizer.synthesize(query, documents)
         return str(response)
 
 
-class LlamaIndexEvaluator:
-    """Evaluate responses using embedding similarity."""
+class LlamaIndexEvaluator(Evaluator):
+    """Compare two strings using :class:`difflib.SequenceMatcher`."""
 
-    def __init__(self) -> None:
-        if EmbeddingSimilarityEvaluator is None:
-            raise ImportError("llama_index evaluator components are required")
-        self.evaluator = EmbeddingSimilarityEvaluator()
+    def evaluate(self, answer: str, expected: str) -> float:
+        return SequenceMatcher(None, expected, answer).ratio()
 
-    def evaluate(self, response: str, reference: str) -> Any:
-        """Return an evaluation score between ``response`` and ``reference``."""
-
-        return self.evaluator.evaluate(response=response, reference=reference)

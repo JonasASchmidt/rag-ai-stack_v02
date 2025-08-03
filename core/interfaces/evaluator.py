@@ -1,12 +1,11 @@
-"""Interfaces for evaluating generated responses."""
+"""Interface for scoring the quality of generated answers."""
 
 from abc import ABC, abstractmethod
-from typing import Sequence
 
 
 class Evaluator(ABC):
-    """Abstract base class for evaluating responses."""
+    """Abstract base class for evaluating question/answer pairs."""
 
     @abstractmethod
-    def evaluate(self, query: str, response: str, references: Sequence[str]) -> float:
-        """Return a score for ``response`` given ``query`` and reference documents."""
+    def evaluate(self, answer: str, expected: str) -> float:
+        """Return a similarity score between ``answer`` and ``expected``."""

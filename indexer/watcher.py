@@ -34,6 +34,7 @@ def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
+    ingest.main()
     handler = DebouncedHandler(debounce)
     observer = Observer()
     observer.schedule(handler, str(docs_dir), recursive=True)
