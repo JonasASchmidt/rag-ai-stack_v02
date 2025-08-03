@@ -51,8 +51,7 @@ async def on_message(message: cl.Message) -> None:
     sources = ", ".join(
         sorted(
             {
-                n.metadata.get("file_name")
-                or n.metadata.get("source", "")
+                n.metadata.get("file_name") or n.metadata.get("source", "")
                 for n in nodes
                 if getattr(n, "metadata", None)
             }
@@ -73,7 +72,11 @@ async def on_message(message: cl.Message) -> None:
         content="War die Antwort hilfreich?", actions=actions
     ).send()
 
-    value = result.get("value") if isinstance(result, dict) else getattr(result, "value", None)
+    value = (
+        result.get("value")
+        if isinstance(result, dict)
+        else getattr(result, "value", None)
+    )
     if value == "down":
         detail = await cl.AskUserMessage(content="Bitte beschreibe das Problem.").send()
         detail_content = (
@@ -85,4 +88,3 @@ async def on_message(message: cl.Message) -> None:
             f.write(
                 f"{datetime.utcnow().isoformat()}\t{message.content}\t{detail_content}\n"
             )
-

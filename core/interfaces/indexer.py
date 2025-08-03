@@ -32,4 +32,3 @@ class Indexer(ABC):
         Any
             An implementation defined handle to the created index.
         """
-

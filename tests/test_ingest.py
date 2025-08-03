@@ -17,4 +17,3 @@ def test_build_index_runs(tmp_path):
 
     build_index(docs_dir, index_dir)
     assert index_dir.exists()
-

@@ -73,7 +73,9 @@ class LlamaIndexIndexer(Indexer):
     def __init__(self) -> None:
         self.service_context = _service_context_from_env()
 
-    def build(self, docs_dir: Path, persist_dir: Path) -> Any:  # pragma: no cover - heavy IO
+    def build(
+        self, docs_dir: Path, persist_dir: Path
+    ) -> Any:  # pragma: no cover - heavy IO
         if (
             SimpleDirectoryReader is None
             or VectorStoreIndex is None
@@ -157,4 +159,3 @@ class LlamaIndexEvaluator(Evaluator):
 
     def evaluate(self, answer: str, expected: str) -> float:
         return SequenceMatcher(None, expected, answer).ratio()
-
