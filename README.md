@@ -1,10 +1,23 @@
 # RAG AI Stack v0.2
 
 This repository provides a small but complete retrieval augmented
-generation (RAG) stack.  Documents placed in ``DOCS_DIR`` are ingested into
-an on‑disk vector store.  A Chainlit based backend exposes a chat interface
+generation (RAG) stack. Documents placed in ``DOCS_DIR`` are ingested into
+an on‑disk vector store. A Chainlit based backend exposes a chat interface
 which retrieves relevant nodes from the store and lets the LLM generate an
 answer.
+
+## Repository layout
+
+* ``core/`` – framework‑agnostic interfaces plus the concrete
+  ``llama_index`` adapters used by the stack.
+* ``indexer/`` – ingestion code and a file watcher that rebuilds the
+  vector store whenever documents change.
+* ``backend/`` – Chainlit application loading the persisted index and
+  serving the chat UI.
+* ``evaluator/`` – helper script for comparing answers against expected
+  results.
+* ``docs/`` – sample documents that can be indexed.
+* ``tests/`` – small pytest suite.
 
 ## Quick start
 
@@ -33,7 +46,9 @@ important ones are shown below (see ``.env.example`` for the full list):
 | ``LLM_MODEL`` / ``OLLAMA_API_URL`` | Model and endpoint used by the LlamaIndex ``Ollama`` LLM |
 | ``CHUNK_SIZE`` / ``CHUNK_OVERLAP`` | Document chunking parameters |
 | ``RETRIEVAL_K`` / ``FETCH_K`` | Retrieval depth controls |
+| ``MAX_INPUT_SIZE`` / ``NUM_OUTPUT`` | Prompt and output token limits |
 | ``RESPONSE_MODE`` / ``THINKING_STEPS`` / ``TEMPERATURE`` | Response generation knobs |
+| ``DEBOUNCE_SECONDS`` | Delay before the indexer reacts to file changes |
 
 Tweak these values to trade off speed, precision and creativity.
 
@@ -52,8 +67,18 @@ The script writes ``results.json`` with similarity scores based on
 ## Development
 
 The project deliberately keeps dependencies minimal and uses a clean
-architecture.  All interaction with ``llama_index`` happens inside
-``core.adapters.llama_index``.  The rest of the code relies solely on the
+architecture. All interaction with ``llama_index`` happens inside
+``core.adapters.llama_index``. The rest of the code relies solely on the
 abstract interfaces found in ``core.interfaces`` making it easy to swap out
 implementations in the future.
+
+### Local setup
+
+Use the provided ``makefile`` for common tasks:
+
+```bash
+make bootstrap   # create virtual environment and install dependencies
+make test        # run the pytest suite
+make format      # check code style with black
+```
 
