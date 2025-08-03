@@ -1,10 +1,13 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Install only the dependencies required for ingestion
+COPY indexer/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy the indexer code and the core library
+COPY core /app/core
+COPY indexer /app
 
 CMD ["python", "watcher.py"]

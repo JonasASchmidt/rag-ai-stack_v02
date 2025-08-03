@@ -1,16 +1,34 @@
-"""Interfaces for document indexing."""
+"""Core interface for building a document index.
+
+This repository aims to keep a clean separation between the high level
+application code and the underlying libraries used to implement the RAG
+pipeline.  The :class:`Indexer` defines the minimal contract required by
+the ingestion service.  Concrete implementations (for example the
+``LlamaIndexIndexer``) are free to store whatever state they need as long
+as they honour this interface.
+"""
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Any
+from pathlib import Path
+from typing import Any
 
 
 class Indexer(ABC):
-    """Abstract base class for indexing documents in a knowledge store."""
+    """Abstract base class responsible for creating and persisting an index."""
 
     @abstractmethod
-    def add(self, documents: Iterable[Any]) -> None:
-        """Add one or multiple documents to the index."""
+    def build(self, docs_dir: Path, persist_dir: Path) -> Any:
+        """Build or update the index from ``docs_dir`` and persist it.
 
-    @abstractmethod
-    def delete(self, document_ids: Iterable[str]) -> None:
-        """Remove documents identified by the given IDs from the index."""
+        Parameters
+        ----------
+        docs_dir:
+            Directory containing the source documents.
+        persist_dir:
+            Directory where the index should be stored.
+
+        Returns
+        -------
+        Any
+            An implementation defined handle to the created index.
+        """
