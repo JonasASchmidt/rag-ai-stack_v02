@@ -1,13 +1,16 @@
+"""Watch the document directory and rebuild the index on changes."""
+
 import logging
 import os
 import time
 from pathlib import Path
 from threading import Timer
 
-import ingest
 from dotenv import load_dotenv
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
+from . import ingest
 
 
 class DebouncedHandler(FileSystemEventHandler):
