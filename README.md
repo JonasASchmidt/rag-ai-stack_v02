@@ -21,17 +21,19 @@ answer.
 
 ## Quick start
 
+The stack can be launched with Docker containers:
+
 ```bash
 # copy and adjust the configuration
 cp .env.example .env
 
-# start the indexer and the chat backend
+# build and start the indexer plus chat backend
 docker compose up --build
 ```
 
 Put your documents into the volume mounted at ``docs/`` (or whatever
-``DOCS_DIR`` points to).  The indexer watches this directory and rebuilds
-the vector store whenever files change.  The Chainlit UI is available at
+``DOCS_DIR`` points to). The indexer watches this directory and rebuilds
+the vector store whenever files change. The Chainlit UI is available at
 <http://localhost:8000>.
 
 ### Running without Docker
@@ -39,6 +41,10 @@ the vector store whenever files change.  The Chainlit UI is available at
 The components can also be executed directly for local development:
 
 ```bash
+# create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
 # install indexer and backend dependencies
 pip install -r indexer/requirements.txt -r backend/requirements.txt
 
@@ -56,8 +62,15 @@ chainlit run backend/app.py
 
 ## Configuration
 
-All runtime parameters are controlled via environment variables.  The most
-important ones are shown below (see ``.env.example`` for the full list):
+All runtime parameters are controlled via environment variables. Start by
+copying the sample file and adjusting it to your needs:
+
+```bash
+cp .env.example .env
+```
+
+The most important options are shown below (see ``.env.example`` for the full
+list):
 
 | Variable | Description |
 |----------|-------------|
@@ -101,4 +114,17 @@ make bootstrap   # create virtual environment and install dependencies
 make test        # run the pytest suite
 make format      # check code style with black
 ```
+
+## Helper scripts
+
+Several utility scripts live in the project root:
+
+* ``diag-env.sh`` – prints information about the current shell and Python
+  environment to help with debugging.
+* ``repair.sh`` – recreates the local ``.venv`` and reinstalls dependencies
+  using Poetry.
+* ``setup-fallback.sh`` – lightweight bootstrap in case the regular setup
+  fails.
+
+Run them with ``bash <script-name>`` when needed.
 
