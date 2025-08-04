@@ -9,10 +9,12 @@ can be tuned without code changes.
 
 from __future__ import annotations
 
+import hashlib
+import math
 import os
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, List, Sequence
 
 from core.interfaces.evaluator import Evaluator
 from core.interfaces.indexer import Indexer
@@ -29,6 +31,7 @@ try:  # pragma: no cover - optional dependency
         get_response_synthesizer,
         load_index_from_storage,
     )
+    from llama_index.core.embeddings import BaseEmbedding
     from llama_index.readers.file import ImageReader, PDFReader
 
     try:  # pragma: no cover - optional Ollama support
@@ -44,6 +47,45 @@ except Exception:  # pragma: no cover - handled gracefully if missing
     PromptHelper = ServiceContext = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
     VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
     ImageReader = PDFReader = Ollama = None  # type: ignore[assignment]
+
+
+class HashingEmbedding(BaseEmbedding):
+    """Light-weight deterministic embedding based on token hashing."""
+
+    dim: int = 256
+
+    def __init__(self, dim: int = 256) -> None:
+        super().__init__(dim=dim)
+
+    def _hash(self, token: str) -> int:
+        return int(hashlib.sha256(token.encode("utf-8")).hexdigest(), 16)
+
+    def _embed(self, text: str) -> List[float]:
+        vec = [0.0] * self.dim
+        for token in text.lower().split():
+            vec[self._hash(token) % self.dim] += 1.0
+        norm = math.sqrt(sum(v * v for v in vec))
+        if norm:
+            vec = [v / norm for v in vec]
+        return vec
+
+    def _get_query_embedding(self, query: str) -> List[float]:
+        return self._embed(query)
+
+    async def _aget_query_embedding(self, query: str) -> List[float]:
+        return self._embed(query)
+
+    def _get_text_embedding(self, text: str) -> List[float]:
+        return self._embed(text)
+
+    async def _aget_text_embedding(self, text: str) -> List[float]:
+        return self._embed(text)
+
+    def _get_text_embeddings(self, texts: List[str]) -> List[List[float]]:
+        return [self._embed(t) for t in texts]
+
+    async def _aget_text_embeddings(self, texts: List[str]) -> List[List[float]]:
+        return [self._embed(t) for t in texts]
 
 
 def _service_context_from_env() -> ServiceContext:
@@ -73,8 +115,11 @@ def _service_context_from_env() -> ServiceContext:
             temperature=float(env.get("TEMPERATURE", 0.1)),
         )
 
+    embed_dim = int(env.get("EMBED_DIM", 256))
+    embed_model = HashingEmbedding(dim=embed_dim)
+
     return ServiceContext.from_defaults(
-        llm=llm, prompt_helper=prompt_helper, embed_model=None
+        llm=llm, prompt_helper=prompt_helper, embed_model=embed_model
     )
 
 
@@ -125,8 +170,12 @@ class LlamaIndexIndexer(Indexer):
         if StorageContext is None or load_index_from_storage is None:
             raise ImportError("llama_index storage components are required")
 
+        embed_dim = int(os.environ.get("EMBED_DIM", 256))
+        service_context = ServiceContext.from_defaults(
+            llm=None, embed_model=HashingEmbedding(dim=embed_dim)
+        )
         storage = StorageContext.from_defaults(persist_dir=str(persist_dir))
-        return load_index_from_storage(storage)
+        return load_index_from_storage(storage, service_context=service_context)
 
 
 class LlamaIndexRetriever(Retriever):
