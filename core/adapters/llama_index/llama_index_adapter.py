@@ -170,10 +170,12 @@ class LlamaIndexIndexer(Indexer):
         if StorageContext is None or load_index_from_storage is None:
             raise ImportError("llama_index storage components are required")
 
-        embed_dim = int(os.environ.get("EMBED_DIM", 256))
-        service_context = ServiceContext.from_defaults(
-            llm=None, embed_model=HashingEmbedding(dim=embed_dim)
-        )
+        # Recreate the original service context so the loaded index
+        # retains the configured LLM instead of falling back to the
+        # ``MockLLM`` placeholder which results in the
+        # "LLM is explicitly disabled" warning.
+        service_context = _service_context_from_env()
+
         storage = StorageContext.from_defaults(persist_dir=str(persist_dir))
         return load_index_from_storage(storage, service_context=service_context)
 

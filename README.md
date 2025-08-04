@@ -60,6 +60,11 @@ python -m indexer.ingest
 chainlit run backend/app.py
 ```
 
+The backend expects an [Ollama](https://ollama.ai) server listening on
+``http://localhost:11434`` (configurable via ``OLLAMA_API_URL``) with the
+``llama3.1:latest`` model downloaded. Adjust ``LLM_MODEL`` if you want to use
+another local model.
+
 ## Configuration
 
 All runtime parameters are controlled via environment variables. Start by
