@@ -26,15 +26,18 @@ try:  # pragma: no cover - optional dependency
         SimpleDirectoryReader,
         StorageContext,
         VectorStoreIndex,
-        load_index_from_storage,
         get_response_synthesizer,
+        load_index_from_storage,
     )
     from llama_index.readers.file import ImageReader, PDFReader
+
     try:  # pragma: no cover - optional Ollama support
         from llama_index.llms.ollama import Ollama
     except Exception:  # pragma: no cover - legacy path or missing
         try:
-            from llama_index.legacy.llms.ollama import Ollama  # type: ignore[assignment]
+            from llama_index.legacy.llms.ollama import (
+                Ollama,  # type: ignore[assignment]
+            )
         except Exception:  # pragma: no cover - handled gracefully if missing
             Ollama = None  # type: ignore[assignment]
 except Exception:  # pragma: no cover - handled gracefully if missing
