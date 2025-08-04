@@ -20,21 +20,30 @@ from core.interfaces.response_generator import ResponseGenerator
 from core.interfaces.retriever import Retriever
 
 try:  # pragma: no cover - optional dependency
-    from llama_index import (
+    from llama_index.core import (
         PromptHelper,
         ServiceContext,
         SimpleDirectoryReader,
         StorageContext,
         VectorStoreIndex,
+        get_response_synthesizer,
         load_index_from_storage,
     )
-    from llama_index.indices.query.response_synthesizer import get_response_synthesizer
-    from llama_index.llms.ollama import Ollama
     from llama_index.readers.file import ImageReader, PDFReader
+
+    try:  # pragma: no cover - optional Ollama support
+        from llama_index.llms.ollama import Ollama
+    except Exception:  # pragma: no cover - legacy path or missing
+        try:
+            from llama_index.legacy.llms.ollama import (
+                Ollama,  # type: ignore[assignment]
+            )
+        except Exception:  # pragma: no cover - handled gracefully if missing
+            Ollama = None  # type: ignore[assignment]
 except Exception:  # pragma: no cover - handled gracefully if missing
     PromptHelper = ServiceContext = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
     VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
-    Ollama = ImageReader = PDFReader = None  # type: ignore[assignment]
+    ImageReader = PDFReader = Ollama = None  # type: ignore[assignment]
 
 
 def _service_context_from_env() -> ServiceContext:
@@ -46,11 +55,11 @@ def _service_context_from_env() -> ServiceContext:
     env = os.environ
     chunk_size = int(env.get("CHUNK_SIZE", 800))
     chunk_overlap = float(env.get("CHUNK_OVERLAP", 0.1))
-    max_input_size = int(env.get("MAX_INPUT_SIZE", 4096))
+    context_window = int(env.get("MAX_INPUT_SIZE", 4096))
     num_output = int(env.get("NUM_OUTPUT", 512))
 
     prompt_helper = PromptHelper(
-        max_input_size=max_input_size,
+        context_window=context_window,
         num_output=num_output,
         chunk_overlap_ratio=chunk_overlap,
         chunk_size_limit=chunk_size,
@@ -64,7 +73,9 @@ def _service_context_from_env() -> ServiceContext:
             temperature=float(env.get("TEMPERATURE", 0.1)),
         )
 
-    return ServiceContext.from_defaults(llm=llm, prompt_helper=prompt_helper)
+    return ServiceContext.from_defaults(
+        llm=llm, prompt_helper=prompt_helper, embed_model=None
+    )
 
 
 class LlamaIndexIndexer(Indexer):
@@ -81,15 +92,20 @@ class LlamaIndexIndexer(Indexer):
 
         file_extractor = {}
         if PDFReader is not None:
-            file_extractor[".pdf"] = PDFReader(ocr=True)
+            file_extractor[".pdf"] = PDFReader()
         if ImageReader is not None:
-            file_extractor.update(
-                {
-                    ".png": ImageReader(ocr=True),
-                    ".jpg": ImageReader(ocr=True),
-                    ".jpeg": ImageReader(ocr=True),
-                }
-            )
+            try:  # pragma: no cover - optional heavy dependency
+                image_reader = ImageReader(parse_text=True)
+            except Exception:  # pragma: no cover - missing deps
+                image_reader = None
+            if image_reader is not None:
+                file_extractor.update(
+                    {
+                        ".png": image_reader,
+                        ".jpg": image_reader,
+                        ".jpeg": image_reader,
+                    }
+                )
 
         reader = SimpleDirectoryReader(
             str(docs_dir), file_extractor=file_extractor or None
