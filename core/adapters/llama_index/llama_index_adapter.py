@@ -89,7 +89,7 @@ class HashingEmbedding(BaseEmbedding):
 
 
 def _configure_settings_from_env() -> None:
-    """Configure global ``llama_index`` ``Settings`` from environment."""
+    """Configure global :class:`Settings` from environment variables."""
 
     if PromptHelper is None or Settings is None:
         raise ImportError("llama_index is required")
@@ -119,8 +119,8 @@ def _configure_settings_from_env() -> None:
     embed_model = HashingEmbedding(dim=embed_dim)
 
     Settings.llm = llm
-    Settings.prompt_helper = prompt_helper
     Settings.embed_model = embed_model
+    Settings.prompt_helper = prompt_helper
 
 
 class LlamaIndexIndexer(Indexer):
@@ -168,6 +168,10 @@ class LlamaIndexIndexer(Indexer):
         if StorageContext is None or load_index_from_storage is None:
             raise ImportError("llama_index storage components are required")
 
+        # Reconfigure Settings so the loaded index
+        # retains the configured LLM instead of falling back to the
+        # ``MockLLM`` placeholder which results in the
+        # "LLM is explicitly disabled" warning.
         _configure_settings_from_env()
 
         storage = StorageContext.from_defaults(persist_dir=str(persist_dir))
@@ -202,11 +206,13 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
         temperature = float(env.get("TEMPERATURE", 0.1))
 
         llm = Settings.llm
-        if llm is not None and hasattr(llm, "temperature"):
+        if hasattr(llm, "temperature"):
             llm.temperature = temperature
 
         self.synthesizer = get_response_synthesizer(
-            llm=llm, response_mode=self.response_mode
+            llm=llm,
+            prompt_helper=Settings.prompt_helper,
+            response_mode=self.response_mode,
         )
 
     def generate(self, query: str, documents: Sequence[Any]) -> str:
