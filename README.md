@@ -19,6 +19,11 @@ answer.
 * ``docs/`` – sample documents that can be indexed.
 * ``tests/`` – small pytest suite.
 
+## Requirements
+
+Use Python 3.11 or 3.12. Python 3.13 is currently not supported by
+Chainlit and will raise a pydantic dataclass error when starting the app.
+
 ## Quick start
 
 The stack can be launched with Docker containers:
