@@ -1,4 +1,5 @@
-chainlit
+# Pin Chainlit to a version compatible with Pydantic 2.x
+chainlit>=2.6.5,<3
 llama-index>=0.13.0,<0.14.0
 llama-index-llms-ollama>=0.7.0,<0.8.0
 python-dotenv
