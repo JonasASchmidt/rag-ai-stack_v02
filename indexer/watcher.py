@@ -7,7 +7,13 @@ from pathlib import Path
 from threading import Timer
 
 from dotenv import load_dotenv
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import (
+    EVENT_TYPE_CREATED,
+    EVENT_TYPE_DELETED,
+    EVENT_TYPE_MODIFIED,
+    EVENT_TYPE_MOVED,
+    FileSystemEventHandler,
+)
 from watchdog.observers import Observer
 
 from . import ingest
@@ -19,6 +25,13 @@ class DebouncedHandler(FileSystemEventHandler):
         self._timer: Timer | None = None
 
     def on_any_event(self, event):  # type: ignore[override]
+        if event.event_type not in {
+            EVENT_TYPE_CREATED,
+            EVENT_TYPE_DELETED,
+            EVENT_TYPE_MODIFIED,
+            EVENT_TYPE_MOVED,
+        }:
+            return
         if self._timer:
             self._timer.cancel()
         self._timer = Timer(self.delay, self.run_ingest)
