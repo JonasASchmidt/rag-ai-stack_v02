@@ -44,7 +44,7 @@ try:  # pragma: no cover - optional dependency
         except Exception:  # pragma: no cover - handled gracefully if missing
             Ollama = None  # type: ignore[assignment]
 except Exception:  # pragma: no cover - handled gracefully if missing
-    PromptHelper = ServiceContext = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
+    PromptHelper = Settings = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
     VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
     ImageReader = PDFReader = Ollama = None  # type: ignore[assignment]
 
