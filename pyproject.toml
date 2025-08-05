@@ -11,7 +11,7 @@ package-mode = false
 python = ">=3.11,<4.0"
 llama-index = "^0.10.0"
 llama-index-llms-ollama = "^0.2.0"
-chainlit = "^1.0.0"
+chainlit = "^2.0.0"
 watchdog = "^4.0.0"
 python-dotenv = "^1.0.0"
 pypdf = "^4.3.1"
