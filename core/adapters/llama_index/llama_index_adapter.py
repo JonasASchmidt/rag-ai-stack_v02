@@ -23,8 +23,6 @@ from core.interfaces.retriever import Retriever
 
 try:  # pragma: no cover - optional dependency
     from llama_index.core import (
-        PromptHelper,
-        ServiceContext,
         SimpleDirectoryReader,
         StorageContext,
         VectorStoreIndex,
@@ -32,6 +30,7 @@ try:  # pragma: no cover - optional dependency
         load_index_from_storage,
     )
     from llama_index.core.embeddings import BaseEmbedding
+    from llama_index.core.settings import Settings
     from llama_index.readers.file import ImageReader, PDFReader
 
     try:  # pragma: no cover - optional Ollama support
@@ -44,9 +43,9 @@ try:  # pragma: no cover - optional dependency
         except Exception:  # pragma: no cover - handled gracefully if missing
             Ollama = None  # type: ignore[assignment]
 except Exception:  # pragma: no cover - handled gracefully if missing
-    PromptHelper = ServiceContext = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
-    VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
-    ImageReader = PDFReader = Ollama = None  # type: ignore[assignment]
+    SimpleDirectoryReader = StorageContext = VectorStoreIndex = None  # type: ignore[assignment]
+    load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
+    BaseEmbedding = ImageReader = PDFReader = Ollama = Settings = None  # type: ignore[assignment]
 
 
 class HashingEmbedding(BaseEmbedding):
@@ -88,46 +87,38 @@ class HashingEmbedding(BaseEmbedding):
         return [self._embed(t) for t in texts]
 
 
-def _service_context_from_env() -> ServiceContext:
-    """Create a :class:`ServiceContext` configured from environment variables."""
+def _settings_from_env() -> Settings:
+    """Configure global :class:`Settings` from environment variables."""
 
-    if PromptHelper is None or ServiceContext is None:
+    if Settings is None:
         raise ImportError("llama_index is required")
 
     env = os.environ
-    chunk_size = int(env.get("CHUNK_SIZE", 800))
-    chunk_overlap = float(env.get("CHUNK_OVERLAP", 0.1))
-    context_window = int(env.get("MAX_INPUT_SIZE", 4096))
-    num_output = int(env.get("NUM_OUTPUT", 512))
+    Settings.chunk_size = int(env.get("CHUNK_SIZE", 800))
+    Settings.chunk_overlap = float(env.get("CHUNK_OVERLAP", 0.1))
+    Settings.context_window = int(env.get("MAX_INPUT_SIZE", 4096))
+    Settings.num_output = int(env.get("NUM_OUTPUT", 512))
 
-    prompt_helper = PromptHelper(
-        context_window=context_window,
-        num_output=num_output,
-        chunk_overlap_ratio=chunk_overlap,
-        chunk_size_limit=chunk_size,
-    )
-
-    llm = None
     if Ollama is not None:  # pragma: no branch - optional
-        llm = Ollama(
+        Settings.llm = Ollama(
             model=env.get("LLM_MODEL", "llama3.1:latest"),
             base_url=env.get("OLLAMA_API_URL", "http://localhost:11434"),
             temperature=float(env.get("TEMPERATURE", 0.1)),
         )
+    else:  # pragma: no cover - no LLM available
+        Settings.llm = None
 
     embed_dim = int(env.get("EMBED_DIM", 256))
-    embed_model = HashingEmbedding(dim=embed_dim)
+    Settings.embed_model = HashingEmbedding(dim=embed_dim)
 
-    return ServiceContext.from_defaults(
-        llm=llm, prompt_helper=prompt_helper, embed_model=embed_model
-    )
+    return Settings
 
 
 class LlamaIndexIndexer(Indexer):
     """Build and persist a :class:`VectorStoreIndex` from documents."""
 
     def __init__(self) -> None:
-        self.service_context = _service_context_from_env()
+        _settings_from_env()
 
     def build(
         self, docs_dir: Path, persist_dir: Path
@@ -156,9 +147,7 @@ class LlamaIndexIndexer(Indexer):
             str(docs_dir), file_extractor=file_extractor or None
         )
         documents = reader.load_data()
-        index = VectorStoreIndex.from_documents(
-            documents, service_context=self.service_context
-        )
+        index = VectorStoreIndex.from_documents(documents)
 
         index.storage_context.persist(persist_dir=str(persist_dir))
         return index
@@ -170,14 +159,14 @@ class LlamaIndexIndexer(Indexer):
         if StorageContext is None or load_index_from_storage is None:
             raise ImportError("llama_index storage components are required")
 
-        # Recreate the original service context so the loaded index
+        # Recreate the original settings so the loaded index
         # retains the configured LLM instead of falling back to the
         # ``MockLLM`` placeholder which results in the
         # "LLM is explicitly disabled" warning.
-        service_context = _service_context_from_env()
+        _settings_from_env()
 
         storage = StorageContext.from_defaults(persist_dir=str(persist_dir))
-        return load_index_from_storage(storage, service_context=service_context)
+        return load_index_from_storage(storage)
 
 
 class LlamaIndexRetriever(Retriever):
@@ -207,13 +196,12 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
         self.response_mode = env.get("RESPONSE_MODE", "compact")
         temperature = float(env.get("TEMPERATURE", 0.1))
 
-        service_context = index.service_context
-        llm = service_context.llm
+        llm = Settings.llm
         if hasattr(llm, "temperature"):
             llm.temperature = temperature
 
         self.synthesizer = get_response_synthesizer(
-            service_context=service_context, response_mode=self.response_mode
+            llm=llm, response_mode=self.response_mode
         )
 
     def generate(self, query: str, documents: Sequence[Any]) -> str:
