@@ -1,10 +1,8 @@
 # RAG AI Stack v0.2
 
 This repository provides a small but complete retrieval augmented
-generation (RAG) stack. Documents placed in ``DOCS_DIR`` are ingested into
-an on‑disk vector store. A Chainlit based backend exposes a chat interface
-which retrieves relevant nodes from the store and lets the LLM generate an
-answer.
+generation (RAG) stack. Documents placed in a folder are ingested into
+an on‑disk vector store. In a chat interface, users can ask an LLM questions and it then retrieves information from the provided documents and generates answers, based on that.
 
 ## Repository layout
 
