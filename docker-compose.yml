@@ -13,8 +13,8 @@ services:
 
   backend:
     working_dir: /workspace
-    image: python:3.13-slim
-    command: bash -lc "pip install --no-cache-dir -r backend/requirements.txt && chainlit run backend/app.py"
+    image: python:3.12-slim
+    command: bash -lc "pip install --no-cache-dir -r backend/requirements.txt && python -m chainlit run backend/app.py"
     ports:
       - "8000:8000"
     env_file: .env

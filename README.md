@@ -61,8 +61,8 @@ python -m indexer.ingest
 # alternatively keep it up to date
 # python -m indexer.watcher
 
-# start the chat UI
-chainlit run backend/app.py
+# start the chat UI (use ``python -m`` so runtime patches are applied)
+python -m chainlit run backend/app.py
 ```
 
 The backend expects an [Ollama](https://ollama.ai) server listening on
