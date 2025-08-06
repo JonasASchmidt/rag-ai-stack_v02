@@ -113,6 +113,7 @@ def _configure_settings_from_env() -> None:
             model=env.get("LLM_MODEL", "llama3.1:latest"),
             base_url=env.get("OLLAMA_API_URL", "http://localhost:11434"),
             temperature=float(env.get("TEMPERATURE", 0.1)),
+            request_timeout=float(env.get("LLM_REQUEST_TIMEOUT", 120.0)),
         )
 
     embed_dim = int(env.get("EMBED_DIM", 256))
