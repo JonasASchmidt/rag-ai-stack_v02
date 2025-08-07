@@ -57,3 +57,16 @@ def test_success_sets_llm(monkeypatch):
     _setup_env(monkeypatch)
     adapter._configure_settings_from_env()
     assert isinstance(adapter.Settings.llm, DummyOllama)
+
+
+def test_autostart_attempt(monkeypatch):
+    started = {"called": False}
+
+    _setup_env(monkeypatch, fail=True)
+    monkeypatch.setenv("OLLAMA_AUTO_START", "1")
+    monkeypatch.setattr(adapter.subprocess, "Popen", lambda *a, **k: started.__setitem__("called", True))
+    monkeypatch.setattr(adapter.time, "sleep", lambda _: None)
+
+    adapter._configure_settings_from_env()
+    assert started["called"]
+    assert isinstance(adapter.Settings.llm, MockLLM)
