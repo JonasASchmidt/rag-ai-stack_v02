@@ -121,11 +121,18 @@ def _configure_settings_from_env() -> None:
         logger.warning("Ollama LLM is not available, using MockLLM")
         llm = MockLLM()
     else:
+        additional_kwargs = {
+            "num_ctx": int(env.get("OLLAMA_NUM_CTX", "2048")),
+            "num_batch": int(env.get("OLLAMA_NUM_BATCH", "16")),
+            "num_predict": int(env.get("OLLAMA_NUM_PREDICT", "512")),
+        }
         llm_kwargs = {
             "model": model_name,
             "base_url": base_url,
             "temperature": float(env.get("TEMPERATURE", 0.1)),
             "request_timeout": float(env.get("LLM_REQUEST_TIMEOUT", 120.0)),
+            "keep_alive": env.get("OLLAMA_KEEP_ALIVE", "5m"),
+            "additional_kwargs": additional_kwargs,
         }
         try:  # pragma: no branch - optional
             llm = Ollama(**llm_kwargs)

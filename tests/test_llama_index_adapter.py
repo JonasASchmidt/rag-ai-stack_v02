@@ -71,3 +71,29 @@ def test_autostart_attempt(monkeypatch):
     adapter._configure_settings_from_env()
     assert started["called"]
     assert isinstance(adapter.Settings.llm, MockLLM)
+
+
+def test_passes_ollama_options(monkeypatch):
+    captured = {}
+
+    class CaptureOllama(DummyOllama):
+        def __init__(self, *args, **kwargs):
+            captured.update(kwargs)
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(adapter, "PromptHelper", DummyPromptHelper)
+    monkeypatch.setattr(adapter, "Settings", DummySettings)
+    monkeypatch.setattr(adapter, "Ollama", CaptureOllama)
+    monkeypatch.setenv("EMBED_DIM", "16")
+    monkeypatch.setenv("OLLAMA_KEEP_ALIVE", "2m")
+    monkeypatch.setenv("OLLAMA_NUM_CTX", "1024")
+    monkeypatch.setenv("OLLAMA_NUM_BATCH", "8")
+    monkeypatch.setenv("OLLAMA_NUM_PREDICT", "128")
+
+    adapter._configure_settings_from_env()
+
+    assert captured["keep_alive"] == "2m"
+    opts = captured["additional_kwargs"]
+    assert opts["num_ctx"] == 1024
+    assert opts["num_batch"] == 8
+    assert opts["num_predict"] == 128
