@@ -35,9 +35,6 @@ htmlcov/
 .cache/
 *.cache
 
-# Chainlit
-.chainlit/
-
 # Vector store data
 vectorstore/
 
