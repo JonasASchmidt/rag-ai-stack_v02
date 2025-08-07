@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -29,6 +30,9 @@ FEEDBACK_PATH = Path(__file__).with_name("feedback.log")
 index = None
 retriever: LlamaIndexRetriever | None = None
 generator: LlamaIndexResponseGenerator | None = None
+
+
+logger = logging.getLogger(__name__)
 
 
 @cl.on_app_startup
@@ -81,8 +85,15 @@ async def on_message(message: cl.Message) -> None:
         await cl.Message(content="Kein Index geladen.").send()
         return
 
-    nodes = retriever.retrieve(message.content)
-    answer = generator.generate(message.content, nodes)
+    try:
+        nodes = retriever.retrieve(message.content)
+        answer = generator.generate(message.content, nodes)
+    except Exception:
+        logger.exception("Error during retrieval/generation")
+        await cl.Message(
+            content="Bei der Verarbeitung ist ein Fehler aufgetreten."
+        ).send()
+        return
 
     sources = ", ".join(
         sorted(
