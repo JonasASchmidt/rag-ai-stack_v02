@@ -107,14 +107,22 @@ def _configure_settings_from_env() -> None:
         chunk_size_limit=chunk_size,
     )
 
-    llm = None
-    if Ollama is not None:  # pragma: no branch - optional
+    if Ollama is None:  # pragma: no cover - optional dependency missing
+        raise RuntimeError("Ollama LLM is not available")
+
+    llm: Any
+    base_url = env.get("OLLAMA_API_URL", "http://localhost:11434")
+    try:  # pragma: no branch - optional
         llm = Ollama(
             model=env.get("LLM_MODEL", "llama3.1:latest"),
-            base_url=env.get("OLLAMA_API_URL", "http://localhost:11434"),
+            base_url=base_url,
             temperature=float(env.get("TEMPERATURE", 0.1)),
             request_timeout=float(env.get("LLM_REQUEST_TIMEOUT", 120.0)),
         )
+        # verify the Ollama server is reachable
+        llm.client.list()
+    except Exception as exc:  # pragma: no cover - network or init failure
+        raise RuntimeError(f"Failed to connect to Ollama server at {base_url}") from exc
 
     embed_dim = int(env.get("EMBED_DIM", 256))
     embed_model = HashingEmbedding(dim=embed_dim)
