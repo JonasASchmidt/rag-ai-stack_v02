@@ -10,8 +10,11 @@ can be tuned without code changes.
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import os
+import subprocess
+import time
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, List, Sequence
@@ -20,6 +23,8 @@ from core.interfaces.evaluator import Evaluator
 from core.interfaces.indexer import Indexer
 from core.interfaces.response_generator import ResponseGenerator
 from core.interfaces.retriever import Retriever
+
+logger = logging.getLogger(__name__)
 
 try:  # pragma: no cover - optional dependency
     from llama_index.core import (
@@ -32,6 +37,7 @@ try:  # pragma: no cover - optional dependency
         load_index_from_storage,
     )
     from llama_index.core.embeddings import BaseEmbedding
+    from llama_index.core.llms.mock import MockLLM
     from llama_index.readers.file import ImageReader, PDFReader
 
     try:  # pragma: no cover - optional Ollama support
@@ -46,7 +52,7 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover - handled gracefully if missing
     PromptHelper = Settings = SimpleDirectoryReader = StorageContext = None  # type: ignore[assignment]
     VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
-    ImageReader = PDFReader = Ollama = None  # type: ignore[assignment]
+    ImageReader = PDFReader = Ollama = MockLLM = None  # type: ignore[assignment]
 
 
 class HashingEmbedding(BaseEmbedding):
@@ -107,22 +113,68 @@ def _configure_settings_from_env() -> None:
         chunk_size_limit=chunk_size,
     )
 
-    if Ollama is None:  # pragma: no cover - optional dependency missing
-        raise RuntimeError("Ollama LLM is not available")
-
     llm: Any
     base_url = env.get("OLLAMA_API_URL", "http://localhost:11434")
-    try:  # pragma: no branch - optional
-        llm = Ollama(
-            model=env.get("LLM_MODEL", "llama3.1:latest"),
-            base_url=base_url,
-            temperature=float(env.get("TEMPERATURE", 0.1)),
-            request_timeout=float(env.get("LLM_REQUEST_TIMEOUT", 120.0)),
-        )
-        # verify the Ollama server is reachable
-        llm.client.list()
-    except Exception as exc:  # pragma: no cover - network or init failure
-        raise RuntimeError(f"Failed to connect to Ollama server at {base_url}") from exc
+    model_name = env.get("LLM_MODEL", "llama3.1:latest")
+
+    if Ollama is None:  # pragma: no cover - optional dependency missing
+        logger.warning("Ollama LLM is not available, using MockLLM")
+        llm = MockLLM()
+    else:
+        llm_kwargs = {
+            "model": model_name,
+            "base_url": base_url,
+            "temperature": float(env.get("TEMPERATURE", 0.1)),
+            "request_timeout": float(env.get("LLM_REQUEST_TIMEOUT", 120.0)),
+        }
+        try:  # pragma: no branch - optional
+            llm = Ollama(**llm_kwargs)
+            # verify the Ollama server is reachable
+            llm.client.list()
+        except Exception as exc:  # pragma: no cover - network or init failure
+            auto_start = env.get("OLLAMA_AUTO_START")
+            if auto_start:
+                logger.info(
+                    "Failed to connect to Ollama server at %s: %s. Attempting to start it.",
+                    base_url,
+                    exc,
+                )
+                try:
+                    subprocess.Popen(
+                        ["ollama", "serve"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except Exception as start_exc:
+                    logger.warning(
+                        "Unable to start Ollama server: %s; falling back to MockLLM",
+                        start_exc,
+                    )
+                    llm = MockLLM()
+                else:
+                    timeout = float(env.get("OLLAMA_STARTUP_TIMEOUT", "30"))
+                    deadline = time.time() + timeout
+                    while time.time() < deadline:
+                        try:
+                            time.sleep(1)
+                            llm = Ollama(**llm_kwargs)
+                            llm.client.list()
+                            break
+                        except Exception:
+                            continue
+                    else:
+                        logger.warning(
+                            "Ollama server did not start within %.0f seconds; falling back to MockLLM",
+                            timeout,
+                        )
+                        llm = MockLLM()
+            else:
+                logger.warning(
+                    "Failed to connect to Ollama server at %s: %s; falling back to MockLLM",
+                    base_url,
+                    exc,
+                )
+                llm = MockLLM()
 
     embed_dim = int(env.get("EMBED_DIM", 256))
     embed_model = HashingEmbedding(dim=embed_dim)

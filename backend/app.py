@@ -16,6 +16,8 @@ from chainlit.config import config
 from chainlit.input_widget import Switch
 from dotenv import load_dotenv
 from fastapi import Query
+from llama_index.core import Settings
+from llama_index.core.llms.mock import MockLLM
 from llama_index.core.schema import NodeWithScore, TextNode
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -26,6 +28,7 @@ from core.adapters.llama_index.llama_index_adapter import (  # noqa: E402
     LlamaIndexIndexer,
     LlamaIndexResponseGenerator,
     LlamaIndexRetriever,
+    _configure_settings_from_env,
 )
 
 FEEDBACK_PATH = Path(__file__).with_name("feedback.log")
@@ -109,11 +112,25 @@ def _ingest_elements(elements: List[cl.Element]) -> None:
 @cl.on_chat_start
 async def on_chat_start() -> None:
     load_dotenv()
+    _configure_settings_from_env()
+
     if _load_index():
         await cl.Message(content="Index geladen. Stelle deine Frage!").send()
     else:
         await cl.Message(
             content="Kein Index gefunden. Bitte führe zuerst den Indexer aus."
+        ).send()
+
+    if isinstance(Settings.llm, MockLLM):
+        base_url = os.environ.get("OLLAMA_API_URL", "http://localhost:11434")
+        model = os.environ.get("LLM_MODEL", "llama3.1:latest")
+        await cl.Message(
+            content=(
+                f"Ollama-Server unter {base_url} nicht erreichbar. "
+                "Nutze MockLLM mit eingeschränkten Antworten. "
+                f"Starte Ollama z. B. mit `ollama serve` und lade das Modell `ollama pull {model}` "
+                "um echte Antworten zu erhalten."
+            )
         ).send()
 
     settings = await cl.ChatSettings(
