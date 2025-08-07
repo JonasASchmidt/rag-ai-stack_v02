@@ -9,6 +9,9 @@ from pathlib import Path
 
 import chainlit as cl
 from dotenv import load_dotenv
+from fastapi import Query
+from chainlit.config import config
+import chainlit.server as cls
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -26,6 +29,17 @@ FEEDBACK_PATH = Path(__file__).with_name("feedback.log")
 index = None
 retriever: LlamaIndexRetriever | None = None
 generator: LlamaIndexResponseGenerator | None = None
+
+
+@cl.on_app_startup
+def add_translation_alias() -> None:
+    @cls.router.get("/_chainlit/project/translations", include_in_schema=False)
+    async def legacy_project_translations(
+        language: str = Query(default="en-US", description="Language code")
+    ) -> dict:
+        """Serve translation strings for legacy frontend paths."""
+        translation = config.load_translation(language)
+        return {"translation": translation}
 
 
 def _load_index() -> bool:
