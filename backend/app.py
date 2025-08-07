@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from datetime import datetime
@@ -52,11 +53,14 @@ retriever: LlamaIndexRetriever | None = None
 generator: LlamaIndexResponseGenerator | None = None
 
 
+logger = logging.getLogger(__name__)
+
+
 @cl.on_app_startup
 def add_translation_alias() -> None:
     @cls.router.get("/_chainlit/project/translations", include_in_schema=False)
     async def legacy_project_translations(
-        language: str = Query(default="en-US", description="Language code")
+        language: str = Query(default="de-DE", description="Language code")
     ) -> dict:
         """Serve translation strings for legacy frontend paths."""
         translation = config.load_translation(language)
@@ -128,23 +132,29 @@ async def on_message(message: cl.Message) -> None:
     if not retriever or not generator:
         await cl.Message(content="Kein Index geladen.").send()
         return
-
     cl.user_session.set("last_user_message", message.content)
 
-    nodes: List[NodeWithScore] = list(retriever.retrieve(message.content))
-    nodes.extend(cl.user_session.get("uploaded_nodes") or [])
+    try:
+        nodes: List[NodeWithScore] = list(retriever.retrieve(message.content))
+        nodes.extend(cl.user_session.get("uploaded_nodes") or [])
 
-    if cl.user_session.get("internet"):
-        snippet = internet_search(message.content)
-        if snippet:
-            nodes.append(
-                NodeWithScore(
-                    node=TextNode(text=snippet, metadata={"source": "Internet"}),
-                    score=0.2,
+        if cl.user_session.get("internet"):
+            snippet = internet_search(message.content)
+            if snippet:
+                nodes.append(
+                    NodeWithScore(
+                        node=TextNode(text=snippet, metadata={"source": "Internet"}),
+                        score=0.2,
+                    )
                 )
-            )
 
-    answer = generator.generate(message.content, nodes)
+        answer = generator.generate(message.content, nodes)
+    except Exception:
+        logger.exception("Error during retrieval/generation")
+        await cl.Message(
+            content="Bei der Verarbeitung ist ein Fehler aufgetreten."
+        ).send()
+        return
 
     sources = ", ".join(
         sorted(
