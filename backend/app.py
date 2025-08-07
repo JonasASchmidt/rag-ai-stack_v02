@@ -6,12 +6,16 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import List
 
 import chainlit as cl
+import chainlit.server as cls
+import requests
+from chainlit.config import config
+from chainlit.input_widget import Switch
 from dotenv import load_dotenv
 from fastapi import Query
-from chainlit.config import config
-import chainlit.server as cls
+from llama_index.core.schema import NodeWithScore, TextNode
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -24,6 +28,23 @@ from core.adapters.llama_index.llama_index_adapter import (  # noqa: E402
 )
 
 FEEDBACK_PATH = Path(__file__).with_name("feedback.log")
+
+
+def internet_search(query: str) -> str:
+    """Return a short snippet from an internet search."""
+
+    try:  # pragma: no cover - network call
+        resp = requests.get(
+            "https://api.duckduckgo.com/",
+            params={"q": query, "format": "json"},
+            timeout=10,
+        )
+        if resp.ok:
+            data = resp.json()
+            return data.get("AbstractText") or ""
+    except Exception:
+        pass
+    return ""
 
 
 index = None
@@ -74,6 +95,33 @@ async def on_chat_start() -> None:
             content="Kein Index gefunden. Bitte führe zuerst den Indexer aus."
         ).send()
 
+    files = await cl.AskFileMessage(
+        content="Lade optionale Dateien hoch.",
+        accept=["text/plain"],
+        max_size_mb=20,
+        max_files=3,
+    ).send()
+    uploaded: List[NodeWithScore] = []
+    for f in files or []:
+        text = f.content.decode("utf-8", errors="ignore")
+        uploaded.append(
+            NodeWithScore(
+                node=TextNode(text=text, metadata={"file_name": f.name}),
+                score=1.0,
+            )
+        )
+    cl.user_session.set("uploaded_nodes", uploaded)
+
+    settings = await cl.ChatSettings(
+        [Switch(id="internet", label="Internet Search", initial=False)]
+    ).send()
+    cl.user_session.set("internet", settings.get("internet", False))
+
+
+@cl.on_settings_update
+async def on_settings_update(settings: dict) -> None:
+    cl.user_session.set("internet", settings.get("internet", False))
+
 
 @cl.on_message
 async def on_message(message: cl.Message) -> None:
@@ -81,15 +129,32 @@ async def on_message(message: cl.Message) -> None:
         await cl.Message(content="Kein Index geladen.").send()
         return
 
-    nodes = retriever.retrieve(message.content)
+    cl.user_session.set("last_user_message", message.content)
+
+    nodes: List[NodeWithScore] = list(retriever.retrieve(message.content))
+    nodes.extend(cl.user_session.get("uploaded_nodes") or [])
+
+    if cl.user_session.get("internet"):
+        snippet = internet_search(message.content)
+        if snippet:
+            nodes.append(
+                NodeWithScore(
+                    node=TextNode(text=snippet, metadata={"source": "Internet"}),
+                    score=0.2,
+                )
+            )
+
     answer = generator.generate(message.content, nodes)
 
     sources = ", ".join(
         sorted(
             {
-                n.metadata.get("file_name") or n.metadata.get("source", "")
+                (getattr(getattr(n, "node", n), "metadata", {}) or {}).get("file_name")
+                or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
+                    "source", ""
+                )
                 for n in nodes
-                if getattr(n, "metadata", None)
+                if getattr(getattr(n, "node", n), "metadata", None)
             }
         )
     )
@@ -97,23 +162,29 @@ async def on_message(message: cl.Message) -> None:
     if sources:
         answer = f"{answer}\n\nQuellen: {sources}"
 
-    sent = cl.Message(content=answer)
+    sent = cl.Message(content="", stream=True)
     await sent.send()
-
+    for token in answer.split():
+        await sent.stream_token(token + " ")
     actions = [
-        cl.Action(name="feedback", value="up", label="👍"),
-        cl.Action(name="feedback", value="down", label="👎"),
+        cl.Action(name="copy", value=answer, label="Copy"),
+        cl.Action(name="retry", value=message.content, label="Retry"),
+        cl.Action(name="vote", value="up", label="👍"),
+        cl.Action(name="vote", value="down", label="👎"),
     ]
-    result = await cl.AskActionMessage(
-        content="War die Antwort hilfreich?", actions=actions
-    ).send()
+    await sent.update(actions=actions)
 
-    value = (
-        result.get("value")
-        if isinstance(result, dict)
-        else getattr(result, "value", None)
-    )
-    if value == "down":
+
+@cl.action_callback("retry")
+async def retry_callback(action: cl.Action) -> None:
+    last = cl.user_session.get("last_user_message")
+    if last:
+        await on_message(cl.Message(content=last))
+
+
+@cl.action_callback("vote")
+async def vote_callback(action: cl.Action) -> None:
+    if action.value == "down":
         detail = await cl.AskUserMessage(content="Bitte beschreibe das Problem.").send()
         detail_content = (
             detail.get("content", "")
@@ -122,5 +193,5 @@ async def on_message(message: cl.Message) -> None:
         )
         with FEEDBACK_PATH.open("a", encoding="utf-8") as f:
             f.write(
-                f"{datetime.utcnow().isoformat()}\t{message.content}\t{detail_content}\n"
+                f"{datetime.utcnow().isoformat()}\t{cl.user_session.get('last_user_message')}\t{detail_content}\n"
             )
