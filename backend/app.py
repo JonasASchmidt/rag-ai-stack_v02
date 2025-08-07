@@ -35,7 +35,7 @@ generator: LlamaIndexResponseGenerator | None = None
 def add_translation_alias() -> None:
     @cls.router.get("/_chainlit/project/translations", include_in_schema=False)
     async def legacy_project_translations(
-        language: str = Query(default="en-US", description="Language code")
+        language: str = Query(default="de-DE", description="Language code")
     ) -> dict:
         """Serve translation strings for legacy frontend paths."""
         translation = config.load_translation(language)
