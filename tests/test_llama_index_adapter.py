@@ -1,4 +1,3 @@
-import pytest
 from llama_index.core.llms.mock import MockLLM
 
 from core.adapters.llama_index import llama_index_adapter as adapter
@@ -64,7 +63,9 @@ def test_autostart_attempt(monkeypatch):
 
     _setup_env(monkeypatch, fail=True)
     monkeypatch.setenv("OLLAMA_AUTO_START", "1")
-    monkeypatch.setattr(adapter.subprocess, "Popen", lambda *a, **k: started.__setitem__("called", True))
+    monkeypatch.setattr(
+        adapter.subprocess, "Popen", lambda *a, **k: started.__setitem__("called", True)
+    )
     monkeypatch.setattr(adapter.time, "sleep", lambda _: None)
 
     adapter._configure_settings_from_env()

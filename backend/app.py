@@ -16,6 +16,8 @@ from chainlit.config import config
 from chainlit.input_widget import Switch
 from dotenv import load_dotenv
 from fastapi import Query
+from llama_index.core import Settings
+from llama_index.core.llms.mock import MockLLM
 from llama_index.core.schema import NodeWithScore, TextNode
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -28,8 +30,6 @@ from core.adapters.llama_index.llama_index_adapter import (  # noqa: E402
     LlamaIndexRetriever,
     _configure_settings_from_env,
 )
-from llama_index.core import Settings
-from llama_index.core.llms.mock import MockLLM
 
 FEEDBACK_PATH = Path(__file__).with_name("feedback.log")
 

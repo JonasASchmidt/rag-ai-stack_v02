@@ -10,14 +10,14 @@ can be tuned without code changes.
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import os
+import subprocess
+import time
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, List, Sequence
-import logging
-import subprocess
-import time
 
 from core.interfaces.evaluator import Evaluator
 from core.interfaces.indexer import Indexer
@@ -37,8 +37,8 @@ try:  # pragma: no cover - optional dependency
         load_index_from_storage,
     )
     from llama_index.core.embeddings import BaseEmbedding
-    from llama_index.readers.file import ImageReader, PDFReader
     from llama_index.core.llms.mock import MockLLM
+    from llama_index.readers.file import ImageReader, PDFReader
 
     try:  # pragma: no cover - optional Ollama support
         from llama_index.llms.ollama import Ollama
