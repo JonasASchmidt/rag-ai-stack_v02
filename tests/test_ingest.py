@@ -1,12 +1,13 @@
-import pytest
 import sys
 from pathlib import Path
 
-llama_index = pytest.importorskip("llama_index")
+import pytest
 from llama_index.llms.ollama import Ollama as RealOllama
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from indexer.ingest import build_index
+from indexer.ingest import build_index  # noqa: E402
+
+llama_index = pytest.importorskip("llama_index")
 
 
 class DummyClient:

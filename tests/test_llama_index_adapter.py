@@ -33,7 +33,9 @@ def _setup_env(monkeypatch, **ollama_kwargs):
     monkeypatch.setattr(adapter, "PromptHelper", DummyPromptHelper)
     monkeypatch.setattr(adapter, "Settings", DummySettings)
     monkeypatch.setenv("EMBED_DIM", "16")
-    monkeypatch.setattr(adapter, "Ollama", lambda *a, **k: DummyOllama(*a, **k, **ollama_kwargs))
+    monkeypatch.setattr(
+        adapter, "Ollama", lambda *a, **k: DummyOllama(*a, **k, **ollama_kwargs)
+    )
 
 
 def test_raises_when_ollama_missing(monkeypatch):

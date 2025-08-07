@@ -122,9 +122,7 @@ def _configure_settings_from_env() -> None:
         # verify the Ollama server is reachable
         llm.client.list()
     except Exception as exc:  # pragma: no cover - network or init failure
-        raise RuntimeError(
-            f"Failed to connect to Ollama server at {base_url}"
-        ) from exc
+        raise RuntimeError(f"Failed to connect to Ollama server at {base_url}") from exc
 
     embed_dim = int(env.get("EMBED_DIM", 256))
     embed_model = HashingEmbedding(dim=embed_dim)
