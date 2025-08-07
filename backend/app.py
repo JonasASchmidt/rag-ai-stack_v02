@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -90,6 +89,23 @@ def _load_index() -> bool:
     return True
 
 
+def _ingest_elements(elements: List[cl.Element]) -> None:
+    """Persist uploaded elements and rebuild the index."""
+    docs_dir = Path(os.environ.get("DOCS_DIR", "docs"))
+    index_dir = Path(os.environ.get("INDEX_DIR", "vectorstore/llama"))
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    for el in elements:
+        if not getattr(el, "path", None):
+            continue
+        dest = docs_dir / (el.name or Path(el.path).name)
+        dest.write_bytes(Path(el.path).read_bytes())
+    indexer = LlamaIndexIndexer()
+    global index, retriever, generator
+    index = indexer.build(docs_dir, index_dir)
+    retriever = LlamaIndexRetriever(index)
+    generator = LlamaIndexResponseGenerator(index)
+
+
 @cl.on_chat_start
 async def on_chat_start() -> None:
     load_dotenv()
@@ -99,23 +115,6 @@ async def on_chat_start() -> None:
         await cl.Message(
             content="Kein Index gefunden. Bitte führe zuerst den Indexer aus."
         ).send()
-
-    files = await cl.AskFileMessage(
-        content="Lade optionale Dateien hoch.",
-        accept=["text/plain"],
-        max_size_mb=20,
-        max_files=3,
-    ).send()
-    uploaded: List[NodeWithScore] = []
-    for f in files or []:
-        text = f.content.decode("utf-8", errors="ignore")
-        uploaded.append(
-            NodeWithScore(
-                node=TextNode(text=text, metadata={"file_name": f.name}),
-                score=1.0,
-            )
-        )
-    cl.user_session.set("uploaded_nodes", uploaded)
 
     settings = await cl.ChatSettings(
         [Switch(id="internet", label="Internet Search", initial=False)]
@@ -130,6 +129,8 @@ async def on_settings_update(settings: dict) -> None:
 
 @cl.on_message
 async def on_message(message: cl.Message) -> None:
+    if message.elements:
+        _ingest_elements(message.elements)
     if not retriever or not generator:
         await cl.Message(content="Kein Index geladen.").send()
         return
@@ -137,7 +138,6 @@ async def on_message(message: cl.Message) -> None:
 
     try:
         nodes: List[NodeWithScore] = list(retriever.retrieve(message.content))
-        nodes.extend(cl.user_session.get("uploaded_nodes") or [])
 
         if cl.user_session.get("internet"):
             snippet = internet_search(message.content)
