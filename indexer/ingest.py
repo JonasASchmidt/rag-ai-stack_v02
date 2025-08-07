@@ -13,7 +13,17 @@ import logging
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover - fallback
+
+    def load_dotenv(*_: object, **__: object) -> None:
+        """Fallback no-op if python-dotenv is not installed."""
+
+        logging.getLogger(__name__).warning(
+            "python-dotenv not installed; skipping .env loading"
+        )
+
 
 from core.adapters.llama_index.llama_index_adapter import LlamaIndexIndexer
 
