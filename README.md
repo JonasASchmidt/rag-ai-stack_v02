@@ -89,6 +89,7 @@ list):
 | ``INDEX_DIR`` | Where the persistent vector store is written |
 | ``LLM_MODEL`` / ``OLLAMA_API_URL`` | Model and endpoint used by the LlamaIndex ``Ollama`` LLM |
 | ``LLM_REQUEST_TIMEOUT`` | Seconds to wait for the LlamaIndex ``Ollama`` LLM |
+| ``OLLAMA_KEEP_ALIVE`` / ``OLLAMA_NUM_CTX`` / ``OLLAMA_NUM_BATCH`` / ``OLLAMA_NUM_PREDICT`` | Advanced Ollama runtime options |
 | ``CHUNK_SIZE`` / ``CHUNK_OVERLAP`` | Document chunking parameters |
 | ``EMBED_DIM`` | Size of the lightweight hashing embedding vector |
 | ``RETRIEVAL_K`` / ``FETCH_K`` | Retrieval depth controls |
