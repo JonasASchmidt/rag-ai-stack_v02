@@ -1,4 +1,5 @@
 import pytest
+from llama_index.core.llms.mock import MockLLM
 
 from core.adapters.llama_index import llama_index_adapter as adapter
 
@@ -38,18 +39,18 @@ def _setup_env(monkeypatch, **ollama_kwargs):
     )
 
 
-def test_raises_when_ollama_missing(monkeypatch):
+def test_falls_back_when_ollama_missing(monkeypatch):
     monkeypatch.setattr(adapter, "PromptHelper", DummyPromptHelper)
     monkeypatch.setattr(adapter, "Settings", DummySettings)
     monkeypatch.setattr(adapter, "Ollama", None)
-    with pytest.raises(RuntimeError, match="Ollama LLM is not available"):
-        adapter._configure_settings_from_env()
+    adapter._configure_settings_from_env()
+    assert isinstance(adapter.Settings.llm, MockLLM)
 
 
-def test_raises_when_server_unreachable(monkeypatch):
+def test_falls_back_when_server_unreachable(monkeypatch):
     _setup_env(monkeypatch, fail=True)
-    with pytest.raises(RuntimeError, match="Failed to connect to Ollama server"):
-        adapter._configure_settings_from_env()
+    adapter._configure_settings_from_env()
+    assert isinstance(adapter.Settings.llm, MockLLM)
 
 
 def test_success_sets_llm(monkeypatch):
