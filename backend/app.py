@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List
@@ -147,7 +148,6 @@ async def on_message(message: cl.Message) -> None:
                         score=0.2,
                     )
                 )
-
         answer = generator.generate(message.content, nodes)
     except Exception:
         logger.exception("Error during retrieval/generation")
