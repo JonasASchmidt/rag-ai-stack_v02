@@ -30,7 +30,7 @@ The stack can be launched with Docker containers:
 # copy and adjust the configuration
 cp .env.example .env
 
-# build and start the indexer plus chat backend
+# build and start the indexer, Ollama LLM and chat backend
 docker compose up --build
 ```
 
@@ -63,10 +63,13 @@ python -m indexer.ingest
 python -m chainlit run backend/app.py
 ```
 
-The backend expects an [Ollama](https://ollama.ai) server listening on
-``http://localhost:11434`` (configurable via ``OLLAMA_API_URL``) with the
-``llama3.1:latest`` model downloaded. Adjust ``LLM_MODEL`` if you want to use
-another local model.
+The ``docker-compose.yml`` file starts an
+[Ollama](https://ollama.ai) service that the other components connect to via
+``OLLAMA_API_URL=http://ollama:11434``. For local development without Docker,
+run your own Ollama server on ``http://localhost:11434`` instead and adjust
+``OLLAMA_API_URL`` accordingly. Make sure the ``llama3.1:latest`` model is
+available in your Ollama instance or change ``LLM_MODEL`` to another local
+model.
 
 ## Configuration
 
