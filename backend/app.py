@@ -168,7 +168,12 @@ async def on_message(message: cl.Message) -> None:
                         score=0.2,
                     )
                 )
-        answer = await asyncio.to_thread(generator.generate, message.content, nodes)
+        sent = cl.Message(content="")
+        await sent.send()
+        answer_parts: list[str] = []
+        for token in generator.generate_stream(message.content, nodes):
+            answer_parts.append(token)
+            await sent.stream_token(token)
     except Exception:
         logger.exception("Error during retrieval/generation")
         await cl.Message(
@@ -176,12 +181,13 @@ async def on_message(message: cl.Message) -> None:
         ).send()
         return
 
+    answer = "".join(answer_parts)
     sources = ", ".join(
         sorted(
             {
                 (getattr(getattr(n, "node", n), "metadata", {}) or {}).get("file_name")
                 or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
-                    "source", ""
+                    "source", "",
                 )
                 for n in nodes
                 if getattr(getattr(n, "node", n), "metadata", None)
@@ -190,20 +196,17 @@ async def on_message(message: cl.Message) -> None:
     )
 
     if sources:
-        answer = f"{answer}\n\nQuellen: {sources}"
+        sources_text = f"\n\nQuellen: {sources}"
+        answer += sources_text
+        await sent.stream_token(sources_text)
 
-    sent = cl.Message(content="")
-    await sent.send()
-    for token in answer.split():
-        await sent.stream_token(token + " ")
     actions = [
-        cl.Action(name="copy", payload=answer, label="Copy"),
-        cl.Action(name="retry", payload=message.content, label="Retry"),
-        cl.Action(name="vote", payload="up", label="👍"),
-        cl.Action(name="vote", payload="down", label="👎"),
+        cl.Action(name="copy", payload={"answer": answer}, label="Copy"),
+        cl.Action(name="retry", payload={}, label="Retry"),
+        cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
+        cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
     ]
     await sent.update(actions=actions)
-
 
 @cl.action_callback("retry")
 async def retry_callback(action: cl.Action) -> None:
@@ -214,7 +217,7 @@ async def retry_callback(action: cl.Action) -> None:
 
 @cl.action_callback("vote")
 async def vote_callback(action: cl.Action) -> None:
-    if action.payload == "down":
+    if (action.payload or {}).get("direction") == "down":
         detail = await cl.AskUserMessage(content="Bitte beschreibe das Problem.").send()
         detail_content = (
             detail.get("content", "")

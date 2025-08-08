@@ -285,6 +285,7 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
             llm=llm,
             prompt_helper=Settings.prompt_helper,
             response_mode=self.response_mode,
+            streaming=True,
         )
 
     def generate(self, query: str, documents: Sequence[Any]) -> str:
@@ -292,6 +293,19 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
             query = f"Think in {self.thinking_steps} steps and answer.\n{query}"
         response = self.synthesizer.synthesize(query, documents)
         return str(response)
+
+    def generate_stream(self, query: str, documents: Sequence[Any]):
+        """Yield tokens from the synthesized response as they are produced."""
+
+        if self.thinking_steps > 1:
+            query = f"Think in {self.thinking_steps} steps and answer.\n{query}"
+        response = self.synthesizer.synthesize(query, documents)
+        gen = getattr(response, "response_gen", None)
+        if gen is None:
+            yield str(response)
+        else:
+            for token in gen:
+                yield token
 
 
 class LlamaIndexEvaluator(Evaluator):
