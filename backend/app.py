@@ -94,7 +94,7 @@ def _load_index() -> bool:
     return True
 
 
-def _ingest_elements(elements: List[cl.Element]) -> None:
+def _ingest_elements_sync(elements: List[cl.Element]) -> None:
     """Persist uploaded elements and rebuild the index."""
     docs_dir = Path(os.environ.get("DOCS_DIR", "docs"))
     index_dir = Path(os.environ.get("INDEX_DIR", "vectorstore/llama"))
@@ -109,6 +109,11 @@ def _ingest_elements(elements: List[cl.Element]) -> None:
     index = indexer.build(docs_dir, index_dir)
     retriever = LlamaIndexRetriever(index)
     generator = LlamaIndexResponseGenerator(index)
+
+
+async def _ingest_elements(elements: List[cl.Element]) -> None:
+    """Run ingestion in a background thread."""
+    await asyncio.to_thread(_ingest_elements_sync, elements)
 
 
 @cl.on_chat_start
@@ -149,7 +154,10 @@ async def on_settings_update(settings: dict) -> None:
 @cl.on_message
 async def on_message(message: cl.Message) -> None:
     if message.elements:
-        _ingest_elements(message.elements)
+        status = cl.Message(content="Index wird aktualisiert …")
+        await status.send()
+        await _ingest_elements(message.elements)
+        await status.update(content="Index aktualisiert.")
     if not retriever or not generator:
         await cl.Message(content="Kein Index geladen.").send()
         return
@@ -187,7 +195,8 @@ async def on_message(message: cl.Message) -> None:
             {
                 (getattr(getattr(n, "node", n), "metadata", {}) or {}).get("file_name")
                 or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
-                    "source", "",
+                    "source",
+                    "",
                 )
                 for n in nodes
                 if getattr(getattr(n, "node", n), "metadata", None)
@@ -207,6 +216,7 @@ async def on_message(message: cl.Message) -> None:
         cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
     ]
     await sent.update(actions=actions)
+
 
 @cl.action_callback("retry")
 async def retry_callback(action: cl.Action) -> None:
