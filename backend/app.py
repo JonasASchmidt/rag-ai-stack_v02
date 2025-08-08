@@ -168,6 +168,7 @@ async def on_message(message: cl.Message) -> None:
                         score=0.2,
                     )
                 )
+
         answer_parts: list[str] = []
         actions = [
             cl.Action(name="copy", payload={"answer": ""}, label="Copy"),
@@ -218,8 +219,7 @@ async def on_message(message: cl.Message) -> None:
                         "file_name"
                     )
                     or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
-                        "source",
-                        "",
+                        "source", ""
                     )
                     for n in nodes
                     if getattr(getattr(n, "node", n), "metadata", None)
@@ -228,7 +228,7 @@ async def on_message(message: cl.Message) -> None:
         )
 
         if sources:
-            sources_text = f"\n\nQuellen: {sources}"
+            sources_text = f"\\n\\nQuellen: {sources}"
             answer += sources_text
             await sent.stream_token(sources_text)
 
