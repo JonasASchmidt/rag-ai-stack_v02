@@ -17,7 +17,7 @@ import subprocess
 import time
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, List, Sequence
+from typing import Any, AsyncIterator, Iterator, List, Sequence
 
 from core.interfaces.evaluator import Evaluator
 from core.interfaces.indexer import Indexer
@@ -294,7 +294,9 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
         response = self.synthesizer.synthesize(query, documents)
         return str(response)
 
-    def generate_stream(self, query: str, documents: Sequence[Any]):
+    def generate_stream(
+        self, query: str, documents: Sequence[Any]
+    ) -> Iterator[str]:
         """Yield tokens from the synthesized response as they are produced."""
 
         if self.thinking_steps > 1:
@@ -307,7 +309,9 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
             for token in gen:
                 yield token
 
-    async def agenerate_stream(self, query: str, documents: Sequence[Any]):
+    async def agenerate_stream(
+        self, query: str, documents: Sequence[Any]
+    ) -> AsyncIterator[str]:
         """Asynchronously yield tokens from the synthesized response.
 
         Falls ``llama_index`` eine native asynchrone Streaming-Methode

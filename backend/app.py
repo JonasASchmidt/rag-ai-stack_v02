@@ -199,7 +199,7 @@ async def on_message(message: cl.Message) -> None:
                     loop.call_soon_threadsafe(queue.put_nowait, token)
                 loop.call_soon_threadsafe(queue.put_nowait, None)
 
-            producer = asyncio.create_task(asyncio.to_thread(produce_sync))
+            producer = asyncio.to_thread(produce_sync)
 
         await asyncio.gather(producer, consumer)
     except Exception:
