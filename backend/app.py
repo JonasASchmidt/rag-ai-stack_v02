@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sys
@@ -154,10 +155,11 @@ async def on_message(message: cl.Message) -> None:
     cl.user_session.set("last_user_message", message.content)
 
     try:
-        nodes: List[NodeWithScore] = list(retriever.retrieve(message.content))
+        nodes = await asyncio.to_thread(retriever.retrieve, message.content)
+        nodes = list(nodes)
 
         if cl.user_session.get("internet"):
-            snippet = internet_search(message.content)
+            snippet = await asyncio.to_thread(internet_search, message.content)
             if snippet:
                 nodes.append(
                     NodeWithScore(
@@ -165,7 +167,7 @@ async def on_message(message: cl.Message) -> None:
                         score=0.2,
                     )
                 )
-        answer = generator.generate(message.content, nodes)
+        answer = await asyncio.to_thread(generator.generate, message.content, nodes)
     except Exception:
         logger.exception("Error during retrieval/generation")
         await cl.Message(
