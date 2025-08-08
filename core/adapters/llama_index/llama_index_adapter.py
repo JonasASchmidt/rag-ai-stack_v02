@@ -17,7 +17,7 @@ import subprocess
 import time
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, List, Sequence
+from typing import Any, AsyncIterator, Iterator, List, Sequence
 
 from core.interfaces.evaluator import Evaluator
 from core.interfaces.indexer import Indexer
@@ -294,7 +294,9 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
         response = self.synthesizer.synthesize(query, documents)
         return str(response)
 
-    def generate_stream(self, query: str, documents: Sequence[Any]):
+    def generate_stream(
+        self, query: str, documents: Sequence[Any]
+    ) -> Iterator[str]:
         """Yield tokens from the synthesized response as they are produced."""
 
         if self.thinking_steps > 1:
@@ -306,6 +308,34 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
         else:
             for token in gen:
                 yield token
+
+    async def agenerate_stream(
+        self, query: str, documents: Sequence[Any]
+    ) -> AsyncIterator[str]:
+        """Asynchronously yield tokens from the synthesized response.
+
+        Falls ``llama_index`` eine native asynchrone Streaming-Methode
+        bereitstellt, wird diese genutzt. Andernfalls wird auf die
+        synchrone :meth:`generate_stream`-Variante zurückgegriffen.
+        """
+
+        if self.thinking_steps > 1:
+            query = f"Think in {self.thinking_steps} steps and answer.\n{query}"
+
+        asynthesize = getattr(self.synthesizer, "asynthesize", None)
+        if callable(asynthesize):
+            response = await asynthesize(query, documents)
+            agen = getattr(response, "async_response_gen", None)
+            if agen is None:
+                yield str(response)
+            else:
+                async for token in agen:
+                    yield token
+            return
+
+        # Fallback: führe die synchrone Streaming-Methode aus.
+        for token in self.generate_stream(query, documents):
+            yield token
 
 
 class LlamaIndexEvaluator(Evaluator):
