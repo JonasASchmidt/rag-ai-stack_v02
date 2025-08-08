@@ -21,10 +21,10 @@ jobs:
       - name: Show Python version
         run: python3 --version
 
-      - name: Bootstrap environment
+        - name: Bootstrap environment
         run: |
           if [ -f Makefile ]; then
-            make bootstrap POETRY_INSTALL_ARGS="--with dev --without llama"
+            make bootstrap POETRY_INSTALL_ARGS="--with dev"
           else
             echo "Makefile missing; falling back to explicit bootstrap"
             python3 -m venv .venv --without-pip
@@ -32,7 +32,7 @@ jobs:
             curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
             python /tmp/get-pip.py --force-reinstall
             python -m pip install --upgrade pip setuptools wheel poetry
-            poetry install --no-root --with dev --without llama
+            poetry install --no-root --with dev
           fi
 
       - name: Format check with warning
