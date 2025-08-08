@@ -12,7 +12,7 @@ from typing import List
 
 import chainlit as cl
 import chainlit.server as cls
-import requests
+import httpx
 from chainlit.config import config
 from chainlit.input_widget import Switch
 from dotenv import load_dotenv
@@ -35,18 +35,19 @@ from core.adapters.llama_index.llama_index_adapter import (  # noqa: E402
 FEEDBACK_PATH = Path(__file__).with_name("feedback.log")
 
 
-def internet_search(query: str) -> str:
+async def internet_search(query: str) -> str:
     """Return a short snippet from an internet search."""
 
     try:  # pragma: no cover - network call
-        resp = requests.get(
-            "https://api.duckduckgo.com/",
-            params={"q": query, "format": "json"},
-            timeout=10,
-        )
-        if resp.ok:
-            data = resp.json()
-            return data.get("AbstractText") or ""
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://api.duckduckgo.com/",
+                params={"q": query, "format": "json"},
+                timeout=10,
+            )
+            if resp.is_success:
+                data = resp.json()
+                return data.get("AbstractText") or ""
     except Exception:
         pass
     return ""
@@ -159,7 +160,7 @@ async def on_message(message: cl.Message) -> None:
         nodes = list(nodes)
 
         if cl.user_session.get("internet"):
-            snippet = await asyncio.to_thread(internet_search, message.content)
+            snippet = await internet_search(message.content)
             if snippet:
                 nodes.append(
                     NodeWithScore(
