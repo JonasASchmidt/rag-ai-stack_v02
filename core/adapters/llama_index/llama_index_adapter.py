@@ -307,6 +307,32 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
             for token in gen:
                 yield token
 
+    async def agenerate_stream(self, query: str, documents: Sequence[Any]):
+        """Asynchronously yield tokens from the synthesized response.
+
+        Falls ``llama_index`` eine native asynchrone Streaming-Methode
+        bereitstellt, wird diese genutzt. Andernfalls wird auf die
+        synchrone :meth:`generate_stream`-Variante zurückgegriffen.
+        """
+
+        if self.thinking_steps > 1:
+            query = f"Think in {self.thinking_steps} steps and answer.\n{query}"
+
+        asynthesize = getattr(self.synthesizer, "asynthesize", None)
+        if callable(asynthesize):
+            response = await asynthesize(query, documents)
+            agen = getattr(response, "async_response_gen", None)
+            if agen is None:
+                yield str(response)
+            else:
+                async for token in agen:
+                    yield token
+            return
+
+        # Fallback: führe die synchrone Streaming-Methode aus.
+        for token in self.generate_stream(query, documents):
+            yield token
+
 
 class LlamaIndexEvaluator(Evaluator):
     """Compare two strings using :class:`difflib.SequenceMatcher`."""

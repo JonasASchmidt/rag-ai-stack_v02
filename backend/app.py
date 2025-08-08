@@ -171,9 +171,37 @@ async def on_message(message: cl.Message) -> None:
         sent = cl.Message(content="")
         await sent.send()
         answer_parts: list[str] = []
-        for token in generator.generate_stream(message.content, nodes):
-            answer_parts.append(token)
-            await sent.stream_token(token)
+        queue: asyncio.Queue[str | None] = asyncio.Queue()
+
+        async def consume() -> None:
+            while True:
+                token = await queue.get()
+                if token is None:
+                    break
+                answer_parts.append(token)
+                await sent.stream_token(token)
+
+        consumer = asyncio.create_task(consume())
+        loop = asyncio.get_running_loop()
+
+        if hasattr(generator, "agenerate_stream"):
+            async def produce_async() -> None:
+                async for token in generator.agenerate_stream(
+                    message.content, nodes
+                ):
+                    await queue.put(token)
+                await queue.put(None)
+
+            producer = asyncio.create_task(produce_async())
+        else:
+            def produce_sync() -> None:
+                for token in generator.generate_stream(message.content, nodes):
+                    loop.call_soon_threadsafe(queue.put_nowait, token)
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+            producer = asyncio.create_task(asyncio.to_thread(produce_sync))
+
+        await asyncio.gather(producer, consumer)
     except Exception:
         logger.exception("Error during retrieval/generation")
         await cl.Message(
