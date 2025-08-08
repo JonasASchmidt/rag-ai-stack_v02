@@ -220,6 +220,7 @@ async def on_message(message: cl.Message) -> None:
                     )
                     or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
                         "source", ""
+
                     )
                     for n in nodes
                     if getattr(getattr(n, "node", n), "metadata", None)
@@ -232,6 +233,7 @@ async def on_message(message: cl.Message) -> None:
             answer += sources_text
             await sent.stream_token(sources_text)
 
+
         actions = [
             cl.Action(name="copy", payload={"answer": answer}, label="Copy"),
             cl.Action(name="retry", payload={}, label="Retry"),
@@ -239,13 +241,13 @@ async def on_message(message: cl.Message) -> None:
             cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
         ]
         await sent.update(actions=actions)
+
     except Exception:
         logger.exception("Error during retrieval/generation")
         await cl.Message(
             content="Bei der Verarbeitung ist ein Fehler aufgetreten."
         ).send()
         return
-
 
 @cl.action_callback("retry")
 async def retry_callback(action: cl.Action) -> None:
