@@ -176,46 +176,84 @@ async def on_message(message: cl.Message) -> None:
                         score=0.2,
                     )
                 )
-        sent = cl.Message(content="")
-        await sent.send()
+
         answer_parts: list[str] = []
-        for token in generator.generate_stream(message.content, nodes):
-            answer_parts.append(token)
-            await sent.stream_token(token)
+        actions = [
+            cl.Action(name="copy", payload={"answer": ""}, label="Copy"),
+            cl.Action(name="retry", payload={}, label="Retry"),
+            cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
+            cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
+        ]
+        sent = cl.Message(content="", actions=actions)
+        await sent.send()
+
+        queue: asyncio.Queue[str | None] = asyncio.Queue()
+
+        async def consume() -> None:
+            while True:
+                token = await queue.get()
+                if token is None:
+                    break
+                answer_parts.append(token)
+                await sent.stream_token(token)
+
+        consumer = asyncio.create_task(consume())
+        loop = asyncio.get_running_loop()
+
+        if hasattr(generator, "agenerate_stream"):
+
+            async def produce_async() -> None:
+                async for token in generator.agenerate_stream(message.content, nodes):
+                    await queue.put(token)
+                await queue.put(None)
+
+            producer = asyncio.create_task(produce_async())
+        else:
+
+            def produce_sync() -> None:
+                for token in generator.generate_stream(message.content, nodes):
+                    loop.call_soon_threadsafe(queue.put_nowait, token)
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+            producer = asyncio.to_thread(produce_sync)
+
+        await asyncio.gather(producer, consumer)
+
+        answer = "".join(answer_parts)
+        sources = ", ".join(
+            sorted(
+                {
+                    (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
+                        "file_name"
+                    )
+                    or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
+                        "source", ""
+                    )
+                    for n in nodes
+                    if getattr(getattr(n, "node", n), "metadata", None)
+                }
+            )
+        )
+
+        if sources:
+            sources_text = f"\n\nQuellen: {sources}"
+            answer += sources_text
+            await sent.stream_token(sources_text)
+
+        actions = [
+            cl.Action(name="copy", payload={"answer": answer}, label="Copy"),
+            cl.Action(name="retry", payload={}, label="Retry"),
+            cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
+            cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
+        ]
+        await sent.update(actions=actions)
+
     except Exception:
         logger.exception("Error during retrieval/generation")
         await cl.Message(
             content="Bei der Verarbeitung ist ein Fehler aufgetreten."
         ).send()
         return
-
-    answer = "".join(answer_parts)
-    sources = ", ".join(
-        sorted(
-            {
-                (getattr(getattr(n, "node", n), "metadata", {}) or {}).get("file_name")
-                or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
-                    "source",
-                    "",
-                )
-                for n in nodes
-                if getattr(getattr(n, "node", n), "metadata", None)
-            }
-        )
-    )
-
-    if sources:
-        sources_text = f"\n\nQuellen: {sources}"
-        answer += sources_text
-        await sent.stream_token(sources_text)
-
-    actions = [
-        cl.Action(name="copy", payload={"answer": answer}, label="Copy"),
-        cl.Action(name="retry", payload={}, label="Retry"),
-        cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
-        cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
-    ]
-    await sent.update(actions=actions)
 
 
 @cl.action_callback("retry")
