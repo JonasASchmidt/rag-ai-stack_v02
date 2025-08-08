@@ -227,7 +227,8 @@ async def on_message(message: cl.Message) -> None:
                         "file_name"
                     )
                     or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
-                        "source", ""
+                        "source",
+                        "",
                     )
                     for n in nodes
                     if getattr(getattr(n, "node", n), "metadata", None)
