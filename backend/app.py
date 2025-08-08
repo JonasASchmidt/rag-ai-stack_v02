@@ -197,10 +197,10 @@ async def on_message(message: cl.Message) -> None:
     for token in answer.split():
         await sent.stream_token(token + " ")
     actions = [
-        cl.Action(name="copy", value=answer, label="Copy"),
-        cl.Action(name="retry", value=message.content, label="Retry"),
-        cl.Action(name="vote", value="up", label="👍"),
-        cl.Action(name="vote", value="down", label="👎"),
+        cl.Action(name="copy", payload=answer, label="Copy"),
+        cl.Action(name="retry", payload=message.content, label="Retry"),
+        cl.Action(name="vote", payload="up", label="👍"),
+        cl.Action(name="vote", payload="down", label="👎"),
     ]
     await sent.update(actions=actions)
 
@@ -214,7 +214,7 @@ async def retry_callback(action: cl.Action) -> None:
 
 @cl.action_callback("vote")
 async def vote_callback(action: cl.Action) -> None:
-    if action.value == "down":
+    if action.payload == "down":
         detail = await cl.AskUserMessage(content="Bitte beschreibe das Problem.").send()
         detail_content = (
             detail.get("content", "")
