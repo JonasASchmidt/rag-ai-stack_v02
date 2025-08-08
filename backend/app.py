@@ -228,7 +228,7 @@ async def on_message(message: cl.Message) -> None:
         )
 
         if sources:
-            sources_text = f"\\n\\nQuellen: {sources}"
+            sources_text = f"\n\nQuellen: {sources}"
             answer += sources_text
             await sent.stream_token(sources_text)
 
