@@ -22,7 +22,7 @@ jobs:
 
       - name: Bootstrap environment
         run: |
-          if [ -f Makefile ]; then
+          if [ -f Makefile ] || [ -f makefile ]; then
             make bootstrap POETRY_INSTALL_ARGS="--with dev"
           else
             echo "Makefile missing; falling back to explicit bootstrap"
@@ -36,7 +36,7 @@ jobs:
 
       - name: Run tests
         run: |
-          if [ -f Makefile ]; then
+          if [ -f Makefile ] || [ -f makefile ]; then
             make test-fast
           else
             echo "Makefile missing; running direct pytest"
