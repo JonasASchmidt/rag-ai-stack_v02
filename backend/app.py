@@ -168,11 +168,38 @@ async def on_message(message: cl.Message) -> None:
                         score=0.2,
                     )
                 )
-        sent = cl.Message(content="")
-        await sent.send()
         answer_parts: list[str] = []
         for token in generator.generate_stream(message.content, nodes):
             answer_parts.append(token)
+
+        answer = "".join(answer_parts)
+        sources = ", ".join(
+            sorted(
+                {
+                    (getattr(getattr(n, "node", n), "metadata", {}) or {}).get("file_name")
+                    or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
+                        "source", "",
+                    )
+                    for n in nodes
+                    if getattr(getattr(n, "node", n), "metadata", None)
+                }
+            )
+        )
+
+        if sources:
+            sources_text = f"\n\nQuellen: {sources}"
+            answer_parts.append(sources_text)
+            answer += sources_text
+
+        actions = [
+            cl.Action(name="copy", payload={"answer": answer}, label="Copy"),
+            cl.Action(name="retry", payload={}, label="Retry"),
+            cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
+            cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
+        ]
+        sent = cl.Message(content="", actions=actions)
+        await sent.send()
+        for token in answer_parts:
             await sent.stream_token(token)
     except Exception:
         logger.exception("Error during retrieval/generation")
@@ -180,33 +207,6 @@ async def on_message(message: cl.Message) -> None:
             content="Bei der Verarbeitung ist ein Fehler aufgetreten."
         ).send()
         return
-
-    answer = "".join(answer_parts)
-    sources = ", ".join(
-        sorted(
-            {
-                (getattr(getattr(n, "node", n), "metadata", {}) or {}).get("file_name")
-                or (getattr(getattr(n, "node", n), "metadata", {}) or {}).get(
-                    "source", "",
-                )
-                for n in nodes
-                if getattr(getattr(n, "node", n), "metadata", None)
-            }
-        )
-    )
-
-    if sources:
-        sources_text = f"\n\nQuellen: {sources}"
-        answer += sources_text
-        await sent.stream_token(sources_text)
-
-    actions = [
-        cl.Action(name="copy", payload={"answer": answer}, label="Copy"),
-        cl.Action(name="retry", payload={}, label="Retry"),
-        cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
-        cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
-    ]
-    await sent.update(actions=actions)
 
 @cl.action_callback("retry")
 async def retry_callback(action: cl.Action) -> None:
