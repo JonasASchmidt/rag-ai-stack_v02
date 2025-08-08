@@ -169,7 +169,13 @@ async def on_message(message: cl.Message) -> None:
                     )
                 )
         answer_parts: list[str] = []
-        sent = cl.Message(content="")
+        actions = [
+            cl.Action(name="copy", payload={"answer": ""}, label="Copy"),
+            cl.Action(name="retry", payload={}, label="Retry"),
+            cl.Action(name="vote", payload={"direction": "up"}, label="👍"),
+            cl.Action(name="vote", payload={"direction": "down"}, label="👎"),
+        ]
+        sent = cl.Message(content="", actions=actions)
         await sent.send()
 
         queue: asyncio.Queue[str | None] = asyncio.Queue()
