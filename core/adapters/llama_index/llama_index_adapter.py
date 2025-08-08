@@ -54,6 +54,10 @@ except Exception:  # pragma: no cover - handled gracefully if missing
     VectorStoreIndex = load_index_from_storage = get_response_synthesizer = None  # type: ignore[assignment]
     ImageReader = PDFReader = Ollama = MockLLM = None  # type: ignore[assignment]
 
+    class BaseEmbedding:  # pragma: no cover - minimal fallback
+        def __init__(self, dim: int = 256) -> None:
+            self.dim = dim
+
 
 class HashingEmbedding(BaseEmbedding):
     """Light-weight deterministic embedding based on token hashing."""
