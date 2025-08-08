@@ -294,9 +294,7 @@ class LlamaIndexResponseGenerator(ResponseGenerator):
         response = self.synthesizer.synthesize(query, documents)
         return str(response)
 
-    def generate_stream(
-        self, query: str, documents: Sequence[Any]
-    ) -> Iterator[str]:
+    def generate_stream(self, query: str, documents: Sequence[Any]) -> Iterator[str]:
         """Yield tokens from the synthesized response as they are produced."""
 
         if self.thinking_steps > 1:

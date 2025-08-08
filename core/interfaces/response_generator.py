@@ -11,9 +11,7 @@ class ResponseGenerator(ABC):
     def generate(self, query: str, documents: Sequence[Any]) -> str:
         """Return an answer to ``query`` based on ``documents``."""
 
-    def generate_stream(
-        self, query: str, documents: Sequence[Any]
-    ) -> Iterator[str]:
+    def generate_stream(self, query: str, documents: Sequence[Any]) -> Iterator[str]:
         """Yield tokens for the answer.
 
         The default implementation falls back to :meth:`generate`.
