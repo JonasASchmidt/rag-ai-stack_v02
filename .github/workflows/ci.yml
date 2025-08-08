@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,11 +17,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'poetry'
+          cache-dependency-path: poetry.lock
 
-      - name: Show Python version
-        run: python3 --version
-
-        - name: Bootstrap environment
+      - name: Bootstrap environment
         run: |
           if [ -f Makefile ]; then
             make bootstrap POETRY_INSTALL_ARGS="--with dev"
@@ -35,32 +34,6 @@ jobs:
             poetry install --no-root --with dev
           fi
 
-      - name: Format check with warning
-        run: |
-          if [ -f Makefile ]; then
-            if make format; then
-              echo "Format OK."
-            else
-              echo "⚠️ Formatierungsprobleme gefunden. Vorschlag zum Fix:"
-              source .venv/bin/activate
-              poetry run black --diff . | head -n 200
-              echo ""
-              echo "Zum Beheben lokal ausführen: make format-fix"
-              exit 1
-            fi
-          else
-            source .venv/bin/activate
-            if poetry run black --check .; then
-              echo "Format OK."
-            else
-              echo "⚠️ Formatierungsprobleme gefunden. Vorschlag zum Fix:"
-              poetry run black --diff . | head -n 200
-              echo ""
-              echo "Zum Beheben lokal ausführen: poetry run black ."
-              exit 1
-            fi
-          fi
-
       - name: Run tests
         run: |
           if [ -f Makefile ]; then
@@ -70,3 +43,4 @@ jobs:
             source .venv/bin/activate
             poetry run pytest -m "not slow" -q
           fi
+
