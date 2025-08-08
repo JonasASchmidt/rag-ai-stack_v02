@@ -1,4 +1,7 @@
-from llama_index.core.llms.mock import MockLLM
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from core.adapters.llama_index import llama_index_adapter as adapter
 
@@ -32,24 +35,30 @@ class DummyOllama:
 def _setup_env(monkeypatch, **ollama_kwargs):
     monkeypatch.setattr(adapter, "PromptHelper", DummyPromptHelper)
     monkeypatch.setattr(adapter, "Settings", DummySettings)
+    monkeypatch.setattr(adapter, "MockLLM", DummyLLM)
     monkeypatch.setenv("EMBED_DIM", "16")
     monkeypatch.setattr(
         adapter, "Ollama", lambda *a, **k: DummyOllama(*a, **k, **ollama_kwargs)
     )
 
 
+class DummyLLM:
+    pass
+
+
 def test_falls_back_when_ollama_missing(monkeypatch):
     monkeypatch.setattr(adapter, "PromptHelper", DummyPromptHelper)
     monkeypatch.setattr(adapter, "Settings", DummySettings)
+    monkeypatch.setattr(adapter, "MockLLM", DummyLLM)
     monkeypatch.setattr(adapter, "Ollama", None)
     adapter._configure_settings_from_env()
-    assert isinstance(adapter.Settings.llm, MockLLM)
+    assert isinstance(adapter.Settings.llm, DummyLLM)
 
 
 def test_falls_back_when_server_unreachable(monkeypatch):
     _setup_env(monkeypatch, fail=True)
     adapter._configure_settings_from_env()
-    assert isinstance(adapter.Settings.llm, MockLLM)
+    assert isinstance(adapter.Settings.llm, DummyLLM)
 
 
 def test_success_sets_llm(monkeypatch):
@@ -70,7 +79,7 @@ def test_autostart_attempt(monkeypatch):
 
     adapter._configure_settings_from_env()
     assert started["called"]
-    assert isinstance(adapter.Settings.llm, MockLLM)
+    assert isinstance(adapter.Settings.llm, DummyLLM)
 
 
 def test_passes_ollama_options(monkeypatch):
