@@ -192,7 +192,7 @@ async def on_message(message: cl.Message) -> None:
     if sources:
         answer = f"{answer}\n\nQuellen: {sources}"
 
-    sent = cl.Message(content="", stream=True)
+    sent = cl.Message(content="")
     await sent.send()
     for token in answer.split():
         await sent.stream_token(token + " ")
